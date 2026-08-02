@@ -6,14 +6,20 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
+# Render (and some hosts) hand out "postgres://" URLs; SQLAlchemy 2.0 wants
+# "postgresql://". Normalize so the same code runs locally and in the cloud.
+database_url = settings.database_url
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 # check_same_thread is only needed for SQLite; harmless to compute here.
 connect_args = (
     {"check_same_thread": False}
-    if settings.database_url.startswith("sqlite")
+    if database_url.startswith("sqlite")
     else {}
 )
 
-engine = create_engine(settings.database_url, connect_args=connect_args)
+engine = create_engine(database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

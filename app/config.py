@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     app_name: str = "SquashBusters Attendance"
     database_url: str = "sqlite:///./attendance.db"
 
+    # Secret for signing the staff login session cookie. Override in production.
+    secret_key: str = "dev-secret-change-me-in-production"
+
     # PIN policy
     pin_length: int = 4
 

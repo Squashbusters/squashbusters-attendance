@@ -15,11 +15,12 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from sqlalchemy.orm import Session
 
+from app.auth import require_login
 from app.config import settings
 from app.database import get_db
 from app.reporting import get_daily_rows, get_daily_summary
 
-router = APIRouter(tags=["dashboard"])
+router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_login)])
 templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent.parent / "templates")
 )

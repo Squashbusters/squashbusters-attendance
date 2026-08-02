@@ -9,12 +9,13 @@ import os
 import re
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
+from app.auth import require_login
 from app.config import settings
 
-router = APIRouter(tags=["outbox"])
+router = APIRouter(tags=["outbox"], dependencies=[Depends(require_login)])
 
 _TITLE = re.compile(r"<title>(.*?)</title>", re.S)
 _TO = re.compile(r'name="x-to" content="(.*?)"')
