@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Daily attendance — {{ day }}</title>
+<style>
+  :root{--border:#cbd5e1;--muted:#64748b;--accent:#0284c7;--amber:#b45309;--green:#15803d;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:#f8fafc;color:#0f172a;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 28px;}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
+  h1{font-size:22px;margin:0;font-weight:600;}
+  .sub{color:var(--muted);margin:4px 0 0;}
+  .actions{display:flex;gap:10px;}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 16px;
+    font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;}
+  .btn.secondary{background:#e2e8f0;color:#0f172a;}
+  .totals{display:flex;gap:24px;flex-wrap:wrap;margin:18px 0 22px;}
+  .totals div{font-size:14px;color:var(--muted);}
+  .totals b{display:block;font-size:24px;color:#0f172a;}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);font-size:14px;}
+  th{background:#f1f5f9;color:var(--muted);font-weight:600;}
+  tr:last-child td{border-bottom:none;}
+  .pill{font-size:12px;padding:2px 9px;border-radius:999px;font-weight:600;}
+  .pill.in{background:#dcfce7;color:var(--green);}
+  .pill.out{background:#e2e8f0;color:#475569;}
+  .noemail{color:var(--amber);font-weight:600;}
+  .signoff{margin-top:34px;color:var(--muted);font-size:14px;}
+  .signoff .line{margin-top:26px;border-top:1px solid #94a3b8;width:280px;padding-top:6px;}
+  .empty{padding:40px;text-align:center;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:10px;}
+  @media print {
+    .actions{display:none;} body{background:#fff;} .wrap{padding:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Daily attendance verification</h1>
+      <p class="sub">{{ app_name }} · {{ day }}</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="/report/daily.csv?day={{ day }}">Download CSV</a>
+      <button class="btn secondary" onclick="window.print()">Print</button>
+      <a class="btn secondary" href="/dashboard?day={{ day }}">← Dashboard</a>
+    </div>
+  </div>
+
+  <div class="totals">
+    <div><b>{{ summary.present }}</b> present</div>
+    <div><b>{{ summary.still_in }}</b> still in</div>
+    <div><b>{{ summary.checked_out }}</b> checked out</div>
+    <div><b>{{ summary.missing_email }}</b> missing email</div>
+  </div>
+
+  {% if rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>Student</th><th>Program</th><th>Check-in</th><th>Check-out</th>
+        <th>Duration</th><th>Status</th><th>Guardian email</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.student_name }}</td>
+        <td>{{ r.program or "—" }}</td>
+        <td>{{ r.check_in.strftime("%I:%M %p") }}</td>
+        <td>{{ r.check_out.strftime("%I:%M %p") if r.check_out else "—" }}</td>
+        <td>{{ r.duration_minutes ~ " min" if r.duration_minutes is not none else "—" }}</td>
+        <td>
+          {% if r.check_out %}<span class="pill out">Checked out</span>
+          {% else %}<span class="pill in">Still in</span>{% endif %}
+        </td>
+        <td>{% if r.has_email %}{{ r.guardian_email }}{% else %}<span class="noemail">(none on file)</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="signoff">
+    Reviewed and verified by:
+    <div class="line">Staff signature / date</div>
+  </div>
+  {% else %}
+  <div class="empty">No check-ins recorded for {{ day }}.</div>
+  {% endif %}
+</div>
+</body>
+</html>

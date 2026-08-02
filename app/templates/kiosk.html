@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>{{ app_name }}</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel-2: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8;
+    --green: #22c55e; --amber: #f59e0b; --red: #ef4444; --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  header {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  header h1 { font-size: 22px; font-weight: 600; margin: 0; }
+  header .site { color: var(--muted); font-size: 15px; }
+  main { flex: 1; display: flex; flex-direction: column; padding: 24px; max-width: 900px; width: 100%; margin: 0 auto; }
+  .screen { display: none; flex: 1; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* Screen 1: name select */
+  .search {
+    width: 100%; padding: 18px 20px; font-size: 20px; border-radius: 14px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text);
+    margin-bottom: 20px;
+  }
+  .names { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; overflow-y: auto; }
+  .name-btn {
+    padding: 22px 16px; border-radius: 16px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 19px; cursor: pointer;
+    text-align: left; transition: background .12s;
+  }
+  .name-btn:hover, .name-btn:active { background: var(--panel-2); }
+  .name-btn .prog { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* Screen 2: PIN */
+  .welcome { font-size: 30px; font-weight: 600; text-align: center; margin: 10px 0 4px; }
+  .prompt { text-align: center; color: var(--muted); margin-bottom: 24px; font-size: 17px; }
+  .dots { display: flex; gap: 18px; justify-content: center; margin-bottom: 30px; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); }
+  .dot.filled { background: var(--accent); border-color: var(--accent); }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 380px; margin: 0 auto; width: 100%; }
+  .key {
+    padding: 24px 0; font-size: 28px; border-radius: 16px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); cursor: pointer;
+  }
+  .key:active { background: var(--panel-2); }
+  .key.fn { font-size: 18px; color: var(--muted); }
+  .back-link { margin-top: 26px; text-align: center; }
+  .back-link button { background: none; border: none; color: var(--accent); font-size: 17px; cursor: pointer; }
+
+  /* Screen 3: result */
+  .result { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .result .icon { font-size: 90px; line-height: 1; margin-bottom: 18px; }
+  .result .msg { font-size: 30px; font-weight: 600; max-width: 640px; }
+  .result.ok .icon { color: var(--green); }
+  .result.warn .icon { color: var(--amber); }
+  .result.err .icon { color: var(--red); }
+  .hint { color: var(--muted); margin-top: 22px; font-size: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ app_name }}</h1>
+  <span class="site" id="siteLabel"></span>
+</header>
+<main>
+  <section id="screen-names" class="screen active">
+    <input class="search" id="search" type="text" placeholder="Type your name to find it…" autocomplete="off" />
+    <div class="names" id="names"></div>
+  </section>
+
+  <section id="screen-pin" class="screen">
+    <div class="welcome" id="welcome"></div>
+    <div class="prompt">Enter your 4-digit PIN</div>
+    <div class="dots" id="dots"></div>
+    <div class="keypad" id="keypad"></div>
+    <div class="back-link"><button id="cancel">← Not you? Go back</button></div>
+  </section>
+
+  <section id="screen-result" class="screen">
+    <div class="result" id="result">
+      <div class="icon" id="resultIcon"></div>
+      <div class="msg" id="resultMsg"></div>
+      <div class="hint">Returning to the start…</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const PIN_LEN = 4;
+let students = [];
+let selected = null;
+let pin = "";
+let resetTimer = null;
+
+const el = (id) => document.getElementById(id);
+const screens = { names: el("screen-names"), pin: el("screen-pin"), result: el("screen-result") };
+
+function show(name) {
+  Object.values(screens).forEach(s => s.classList.remove("active"));
+  screens[name].classList.add("active");
+}
+
+async function loadStudents() {
+  try {
+    const res = await fetch("/api/students");
+    students = await res.json();
+    renderNames("");
+  } catch (e) {
+    el("names").innerHTML = '<div class="hint">Could not load the roster. Please see a staff member.</div>';
+  }
+}
+
+function renderNames(filter) {
+  const q = filter.trim().toLowerCase();
+  const list = students.filter(s => s.full_name.toLowerCase().includes(q));
+  const box = el("names");
+  box.innerHTML = "";
+  list.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "name-btn";
+    b.innerHTML = `${s.full_name}<span class="prog">${s.program || ""}</span>`;
+    b.onclick = () => selectStudent(s);
+    box.appendChild(b);
+  });
+}
+
+function selectStudent(s) {
+  selected = s;
+  pin = "";
+  el("welcome").textContent = `Welcome, ${s.first_name}!`;
+  renderDots();
+  show("pin");
+}
+
+function renderDots() {
+  const dots = el("dots");
+  dots.innerHTML = "";
+  for (let i = 0; i < PIN_LEN; i++) {
+    const d = document.createElement("div");
+    d.className = "dot" + (i < pin.length ? " filled" : "");
+    dots.appendChild(d);
+  }
+}
+
+function buildKeypad() {
+  const keys = ["1","2","3","4","5","6","7","8","9","clear","0","back"];
+  const pad = el("keypad");
+  keys.forEach(k => {
+    const b = document.createElement("button");
+    if (k === "clear") { b.className = "key fn"; b.textContent = "Clear"; b.onclick = () => { pin = ""; renderDots(); }; }
+    else if (k === "back") { b.className = "key fn"; b.textContent = "⌫"; b.onclick = () => { pin = pin.slice(0, -1); renderDots(); }; }
+    else { b.className = "key"; b.textContent = k; b.onclick = () => pressDigit(k); }
+    pad.appendChild(b);
+  });
+}
+
+function pressDigit(d) {
+  if (pin.length >= PIN_LEN) return;
+  pin += d;
+  renderDots();
+  if (pin.length === PIN_LEN) submitPin();
+}
+
+async function submitPin() {
+  const payload = { student_id: selected.id, pin };
+  let data;
+  try {
+    const res = await fetch("/api/checkin", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    data = await res.json();
+  } catch (e) {
+    data = { ok: false, status: "error", message: "Something went wrong. Please try again." };
+  }
+
+  if (data.status === "bad_pin") {
+    // Let them retry without leaving the PIN screen.
+    pin = "";
+    renderDots();
+    flashWelcome("That PIN didn't match — try again");
+    return;
+  }
+  showResult(data);
+}
+
+function flashWelcome(text) {
+  const w = el("welcome");
+  const original = `Welcome, ${selected.first_name}!`;
+  w.textContent = text;
+  setTimeout(() => { if (selected) w.textContent = original; }, 1600);
+}
+
+function showResult(data) {
+  const cls = data.ok ? "ok" : (data.status === "blocked_time_guard" ? "warn" : "err");
+  const icon = data.ok ? "✓" : (data.status === "blocked_time_guard" ? "⏱" : "✕");
+  el("result").className = "result " + cls;
+  el("resultIcon").textContent = icon;
+  el("resultMsg").textContent = data.message;
+  show("result");
+  clearTimeout(resetTimer);
+  resetTimer = setTimeout(reset, 8000);
+}
+
+function reset() {
+  selected = null; pin = "";
+  el("search").value = "";
+  renderNames("");
+  show("names");
+  loadStudents();
+}
+
+el("search").addEventListener("input", (e) => renderNames(e.target.value));
+el("cancel").addEventListener("click", reset);
+buildKeypad();
+loadStudents();
+</script>
+</body>
+</html>
