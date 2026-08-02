@@ -7,6 +7,20 @@ by email and feed leadership dashboards. Multi-site ready.
 See the architecture gameplan for the full 7-layer design. This repo is being
 built milestone by milestone.
 
+## Demo
+
+Run locally (`uvicorn app.main:app`), then open:
+
+- **Kiosk (student check-in):** http://localhost:8000/
+- **Dashboard (leadership):** http://localhost:8000/dashboard — staff login required
+- **Daily report:** http://localhost:8000/report/daily
+
+Demo staff login: `admin` / `changeme` (change before real use).
+Sample student — Maya Chen, PIN `7382`.
+
+> `localhost` links only work on the machine running the app. For a link you can
+> share with others, deploy it (see "Deploying live" below).
+
 ## Status
 
 - [x] **M1 — Foundation & data**: FastAPI scaffold, data model, PIN hashing, CSV bulk import.
