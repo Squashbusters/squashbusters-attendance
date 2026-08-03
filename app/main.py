@@ -35,6 +35,10 @@ app.include_router(admin.router)
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    if settings.seed_on_startup:
+        from app.seed import seed_if_empty
+
+        seed_if_empty()
 
 
 @app.get("/health")

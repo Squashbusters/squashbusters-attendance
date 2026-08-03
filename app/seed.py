@@ -31,6 +31,22 @@ def ensure_admin(db) -> None:
     print("Created default admin user: admin / changeme  (change this!)")
 
 
+def seed_if_empty() -> None:
+    """Idempotent seed for the hosted demo: ensure an admin exists and, if there
+    are no students yet, import the sample roster."""
+    from app.models import Student
+
+    init_db()
+    db = SessionLocal()
+    try:
+        ensure_admin(db)
+        if db.query(Student).count() == 0:
+            import_roster_csv(db, DEFAULT_CSV.read_bytes())
+            print("Seeded sample roster on startup.")
+    finally:
+        db.close()
+
+
 def main() -> None:
     csv_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CSV
     init_db()

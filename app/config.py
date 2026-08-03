@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     # Secret for signing the staff login session cookie. Override in production.
     secret_key: str = "dev-secret-change-me-in-production"
 
+    # When true, on startup create the admin user and import the sample roster
+    # if the database is empty. Used for the hosted demo so it's self-populating.
+    seed_on_startup: bool = False
+
     # PIN policy
     pin_length: int = 4
 
