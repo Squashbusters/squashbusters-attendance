@@ -9,6 +9,11 @@ built milestone by milestone.
 
 ## Demo
 
+**Live (hosted on Render, always on):** https://squashbusters-attendance.onrender.com
+- Kiosk: `/` · Dashboard/sign-in: `/dashboard`
+- Staff login: `admin` / `changeme` · Sample student: Maya Chen, PIN `7382`
+- First load after idle takes ~50s (free tier sleeps); then it's fast.
+
 Run locally (`uvicorn app.main:app`), then open:
 
 - **Kiosk (student check-in):** http://localhost:8000/
