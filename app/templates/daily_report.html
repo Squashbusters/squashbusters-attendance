@@ -61,13 +61,14 @@
   <table>
     <thead>
       <tr>
-        <th>Student</th><th>Program</th><th>Check-in</th><th>Check-out</th>
+        <th>Photo</th><th>Student</th><th>Program</th><th>Check-in</th><th>Check-out</th>
         <th>Duration</th><th>Status</th><th>Guardian email</th>
       </tr>
     </thead>
     <tbody>
       {% for r in rows %}
       <tr>
+        <td>{% if r.check_in_photo %}<img src="/photos/{{ r.check_in_photo }}" alt="check-in photo" style="width:44px;height:44px;border-radius:8px;object-fit:cover;" />{% else %}—{% endif %}</td>
         <td>{{ r.student_name }}</td>
         <td>{{ r.program or "—" }}</td>
         <td>{{ r.check_in.strftime("%I:%M %p") }}</td>

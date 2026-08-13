@@ -9,8 +9,8 @@ import csv
 import io
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from sqlalchemy.orm import Session
@@ -70,6 +70,17 @@ def daily_report(request: Request, day: str | None = None, db: Session = Depends
             "day": the_day.isoformat(),
         },
     )
+
+
+@router.get("/photos/{name}")
+def photo(name: str):
+    """Serve a check-in photo (staff-only via the router's login guard)."""
+    if "/" in name or "\\" in name or ".." in name:
+        raise HTTPException(status_code=400, detail="Invalid file")
+    path = Path("photos") / name
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(path)
 
 
 @router.get("/report/daily.csv")

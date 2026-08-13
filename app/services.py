@@ -18,6 +18,7 @@ from app import security
 from app.config import settings
 from app.domain import Action, decide_action
 from app.models import AttendanceEvent, Student
+from app.photos import save_photo
 
 
 class ScanStatus(str, Enum):
@@ -84,6 +85,7 @@ def process_scan(
     pin: str,
     now: datetime | None = None,
     session_type: str | None = None,
+    photo: str | None = None,
 ) -> ScanResult:
     now = now or datetime.now()
 
@@ -116,6 +118,7 @@ def process_scan(
             site_id=student.site_id,
             check_in_at=now,
             session_type=session_type,
+            check_in_photo=save_photo(photo),
         )
         db.add(event)
         db.commit()
@@ -124,6 +127,7 @@ def process_scan(
 
     # CHECK_OUT
     open_event.check_out_at = now
+    open_event.check_out_photo = save_photo(photo)
     db.commit()
     db.refresh(open_event)
     return ScanResult(

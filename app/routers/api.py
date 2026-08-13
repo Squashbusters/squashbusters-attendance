@@ -25,6 +25,7 @@ class StudentOut(BaseModel):
 class CheckInRequest(BaseModel):
     student_id: int
     pin: str = Field(min_length=1, max_length=12)
+    photo: str | None = None  # base64 data-URL from the kiosk camera
 
 
 class CheckInResponse(BaseModel):
@@ -80,7 +81,7 @@ def checkin(
     On a successful check-in/out, the parent notification is queued as a
     background task so a slow email never delays the kiosk response.
     """
-    result = process_scan(db, payload.student_id, payload.pin)
+    result = process_scan(db, payload.student_id, payload.pin, photo=payload.photo)
 
     notif = payload_from_result(result)
     if notif is not None:

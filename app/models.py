@@ -91,6 +91,10 @@ class AttendanceEvent(Base):
     )
     session_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
+    # Anti-proxy: photo captured at the kiosk on check-in / check-out.
+    check_in_photo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    check_out_photo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

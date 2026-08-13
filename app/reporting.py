@@ -18,6 +18,8 @@ class DailyRow:
     check_in: datetime
     check_out: datetime | None
     guardian_email: str | None
+    check_in_photo: str | None = None
+    check_out_photo: str | None = None
 
     @property
     def status(self) -> str:
@@ -65,6 +67,8 @@ def get_daily_rows(db: Session, day: date, site_id: int | None = None) -> list[D
                 check_in=event.check_in_at,
                 check_out=event.check_out_at,
                 guardian_email=guardian,
+                check_in_photo=event.check_in_photo,
+                check_out_photo=event.check_out_photo,
             )
         )
     return rows

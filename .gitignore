@@ -6,6 +6,7 @@ attendance.db
 *.sqlite
 *.sqlite3
 outbox/
+photos/
 
 # Python
 .venv/
