@@ -2,6 +2,9 @@
 
 Expected columns (header row, case-insensitive):
     first_name, last_name, program, site, guardian_email, pin
+Optional columns:
+    grade           (e.g. "6th Grade"; used by the kiosk to group the name picker)
+    guardian_phone  (guardian mobile; used for the optional SMS channel)
 
 Rules:
   * Missing first/last name        -> row skipped (error)
@@ -108,7 +111,9 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
         last = row.get("last_name", "")
         site_name = row.get("site", "")
         program_name = row.get("program", "")
+        grade = row.get("grade", "")
         email = row.get("guardian_email", "")
+        phone = row.get("guardian_phone", "")
         pin = row.get("pin", "")
 
         if not first or not last:
@@ -167,12 +172,13 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
         student = Student(
             first_name=first,
             last_name=last,
+            grade=grade or None,
             active=True,
             pin_hash=security.hash_pin(pin),
             site_id=site.id,
             program_id=program.id if program else None,
         )
-        guardian = Guardian(student=student, email=email or None)
+        guardian = Guardian(student=student, email=email or None, phone=phone or None)
         staged.append((student, guardian))
 
     if result.errors:

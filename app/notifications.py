@@ -13,6 +13,7 @@ from datetime import datetime
 
 from app.email import EmailSender, get_email_sender
 from app.services import ScanResult, ScanStatus
+from app.sms import SmsSender, get_sms_sender
 
 logger = logging.getLogger("attendance.notifications")
 
@@ -20,6 +21,7 @@ logger = logging.getLogger("attendance.notifications")
 @dataclass
 class NotificationPayload:
     to_emails: list[str]  # every guardian with an email on file
+    to_phones: list[str]  # every guardian with a phone on file (SMS channel)
     first_name: str
     full_name: str
     site_name: str
@@ -41,11 +43,13 @@ def payload_from_result(result: ScanResult) -> NotificationPayload | None:
     assert student is not None and event is not None
 
     to_emails = [g.email for g in student.guardians if g.email]
+    to_phones = [g.phone for g in student.guardians if g.phone]
     action = "checked in" if result.status is ScanStatus.CHECKED_IN else "checked out"
     event_time = event.check_in_at if result.status is ScanStatus.CHECKED_IN else event.check_out_at
 
     return NotificationPayload(
         to_emails=to_emails,
+        to_phones=to_phones,
         first_name=student.first_name,
         full_name=student.full_name,
         site_name=student.site.name,
@@ -86,6 +90,36 @@ def build_email(p: NotificationPayload) -> tuple[str, str, str]:
   </div>
 </div>"""
     return subject, text, html
+
+
+def build_sms(p: NotificationPayload) -> str:
+    """Short plain-text body for the SMS channel."""
+    when = p.event_time.strftime("%-I:%M %p")
+    return (
+        f"SquashBusters: {p.full_name} {p.action} at the {p.site_name} center "
+        f"({when}). Reply STOP to opt out."
+    )
+
+
+def send_sms_notification(payload: NotificationPayload, sender: SmsSender | None = None) -> bool:
+    """Send the SMS copy of a notification to every guardian phone on file.
+
+    Best-effort and never raises — a missing number or provider error is logged
+    and swallowed so the kiosk is never affected. Does nothing when SMS_BACKEND
+    is "off" (the NullSmsSender), so this is a no-op until explicitly enabled.
+    """
+    if not payload.to_phones:
+        return False
+    sender = sender or get_sms_sender()
+    body = build_sms(payload)
+    sent = False
+    for number in payload.to_phones:
+        try:
+            sender.send(number, body)
+            sent = True
+        except Exception:  # best-effort per recipient
+            logger.exception("Failed to send SMS to %s", number)
+    return sent
 
 
 def send_notification(payload: NotificationPayload, sender: EmailSender | None = None) -> bool:

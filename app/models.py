@@ -36,6 +36,12 @@ class Student(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(80))
     last_name: Mapped[str] = mapped_column(String(80))
+    # Grade label as it comes from Salesforce, e.g. "6th Grade". Nullable so a
+    # student can exist without one; the kiosk groups the name picker by grade.
+    grade: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    # Student's own contact details (captured at walk-in registration).
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Never store a readable PIN — only its hash. Nullable so a student can
@@ -69,9 +75,17 @@ class Guardian(Base):
         ForeignKey("students.id"), index=True
     )
     name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    # Mother / Father / Other (free text for "Other", e.g. Aunt, Grandparent).
+    # Attribute is renamed to avoid shadowing SQLAlchemy's relationship(); the DB
+    # column stays "relationship".
+    relationship_type: Mapped[str | None] = mapped_column(
+        "relationship", String(40), nullable=True
+    )
     # Required in practice for notifications; nullable in the schema so a
     # check-in is never blocked purely by a missing email (it's flagged instead).
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Guardian mobile — used for the optional SMS notification channel.
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     student: Mapped["Student"] = relationship(back_populates="guardians")
 

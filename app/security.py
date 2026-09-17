@@ -4,6 +4,7 @@ PINs and staff passwords are stored only as one-way bcrypt hashes. There is no
 way to recover a PIN — a forgotten PIN is reset, never revealed.
 """
 import re
+import secrets
 
 import bcrypt
 
@@ -36,6 +37,15 @@ def is_weak_pin(pin: str) -> bool:
     ascending = "".join(str(d % 10) for d in range(int(pin[0]), int(pin[0]) + len(pin)))
     descending = "".join(str(d % 10) for d in range(int(pin[0]), int(pin[0]) - len(pin), -1))
     return pin in (ascending, descending)
+
+
+def generate_pin() -> str:
+    """A cryptographically-random PIN of PIN_LENGTH digits, never a weak one."""
+    upper = 10 ** settings.pin_length
+    while True:
+        pin = f"{secrets.randbelow(upper):0{settings.pin_length}d}"
+        if not is_weak_pin(pin):
+            return pin
 
 
 def hash_pin(pin: str) -> str:

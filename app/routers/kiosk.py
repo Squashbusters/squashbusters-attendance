@@ -16,5 +16,9 @@ templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent
 def kiosk(request: Request):
     return templates.TemplateResponse(
         "kiosk.html",
-        {"request": request, "app_name": settings.app_name},
+        {
+            "request": request,
+            "app_name": settings.app_name,
+            "photo_capture": settings.kiosk_photo_capture,
+        },
     )

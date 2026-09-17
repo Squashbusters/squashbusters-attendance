@@ -4,25 +4,36 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>{{ app_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Karla:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0f172a; --panel: #1e293b; --panel-2: #334155;
-    --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8;
-    --green: #22c55e; --amber: #f59e0b; --red: #ef4444; --border: #334155;
+    /* SquashBusters brand (squashbusters.org): navy text, teal + blue accents, white */
+    --bg: #f4f7f9; --panel: #ffffff; --panel-2: #eef3f6;
+    --text: #00213b; --muted: #5b6b78; --accent: #0075bf;
+    --teal: #00b1ae; --navy: #00335c;
+    --green: #00b1ae; --amber: #b45309; --red: #dc2626; --border: #e0e5e9;
+    --head: "Fjalla One", sans-serif;
+    --body: "Karla", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--body);
     -webkit-user-select: none; user-select: none;
     display: flex; flex-direction: column; min-height: 100vh;
   }
-  header {
-    padding: 20px 28px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: baseline; gap: 12px;
+  /* Brand display type for headings and big prompts */
+  header h1, .welcome, .prompt-lg, .grade-btn, .subhead-title, .result .msg {
+    font-family: var(--head); font-weight: 400; letter-spacing: .3px;
   }
-  header h1 { font-size: 22px; font-weight: 600; margin: 0; }
+  header {
+    padding: 18px 28px; border-bottom: 3px solid var(--teal);
+    display: flex; align-items: baseline; gap: 12px; background: var(--panel);
+  }
+  header h1 { font-size: 26px; margin: 0; color: var(--navy); text-transform: uppercase; }
   header .site { color: var(--muted); font-size: 15px; }
   main { flex: 1; display: flex; flex-direction: column; padding: 24px; max-width: 900px; width: 100%; margin: 0 auto; }
   .screen { display: none; flex: 1; flex-direction: column; }
@@ -36,12 +47,30 @@
   }
   .names { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; overflow-y: auto; }
   .name-btn {
-    padding: 22px 16px; border-radius: 16px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); font-size: 19px; cursor: pointer;
-    text-align: left; transition: background .12s;
+    padding: 22px 16px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 19px; font-weight: 500; cursor: pointer;
+    text-align: left; transition: border-color .12s, box-shadow .12s;
+    box-shadow: 0 1px 2px rgba(0,33,59,.06);
   }
-  .name-btn:hover, .name-btn:active { background: var(--panel-2); }
+  .name-btn:hover, .name-btn:active { border-color: var(--teal); box-shadow: 0 4px 14px rgba(0,177,174,.18); }
   .name-btn .prog { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* Screen 0: grade select */
+  .prompt-lg { font-size: 24px; font-weight: 600; margin: 4px 0 20px; text-align: center; }
+  .grades { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+  .grade-btn {
+    padding: 30px 16px; border-radius: 16px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--navy); font-size: 24px;
+    cursor: pointer; text-align: center; transition: border-color .12s, box-shadow .12s;
+    box-shadow: 0 1px 2px rgba(0,33,59,.06); border-bottom: 3px solid var(--teal);
+  }
+  .grade-btn:hover, .grade-btn:active { border-color: var(--teal); box-shadow: 0 4px 14px rgba(0,177,174,.18); }
+  .grade-btn .cnt { display: block; color: var(--muted); font-size: 14px; font-weight: 400; margin-top: 6px; }
+  .grade-btn.empty { opacity: .45; cursor: default; border-bottom-color: var(--border); }
+  .grade-btn.empty:hover, .grade-btn.empty:active { border-color: var(--border); box-shadow: 0 1px 2px rgba(0,33,59,.06); }
+  .subhead { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .back-btn { background: none; border: none; color: var(--accent); font-size: 17px; cursor: pointer; padding: 0; }
+  .subhead-title { font-size: 20px; font-weight: 600; }
 
   /* Screen 2: PIN */
   .welcome { font-size: 30px; font-weight: 600; text-align: center; margin: 10px 0 4px; }
@@ -51,10 +80,11 @@
   .dot.filled { background: var(--accent); border-color: var(--accent); }
   .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 380px; margin: 0 auto; width: 100%; }
   .key {
-    padding: 24px 0; font-size: 28px; border-radius: 16px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); cursor: pointer;
+    padding: 24px 0; font-size: 28px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--navy); cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,33,59,.06); transition: background .1s, border-color .1s;
   }
-  .key:active { background: var(--panel-2); }
+  .key:active { background: var(--panel-2); border-color: var(--teal); }
   .key.fn { font-size: 18px; color: var(--muted); }
   .back-link { margin-top: 26px; text-align: center; }
   .back-link button { background: none; border: none; color: var(--accent); font-size: 17px; cursor: pointer; }
@@ -79,16 +109,27 @@
   <span class="site" id="siteLabel"></span>
 </header>
 <main>
-  <section id="screen-names" class="screen active">
+  <section id="screen-grades" class="screen active">
+    <div class="prompt-lg">Tap your grade</div>
+    <div class="grades" id="grades"></div>
+  </section>
+
+  <section id="screen-names" class="screen">
+    <div class="subhead">
+      <button class="back-btn" id="backToGrades">← Grades</button>
+      <span class="subhead-title" id="gradeTitle"></span>
+    </div>
     <input class="search" id="search" type="text" placeholder="Type your name to find it…" autocomplete="off" />
     <div class="names" id="names"></div>
   </section>
 
   <section id="screen-pin" class="screen">
+    {% if photo_capture %}
     <div class="cam-wrap">
       <video id="cam" autoplay playsinline muted></video>
       <div class="cam-note" id="camNote">A photo is taken at check-in for security</div>
     </div>
+    {% endif %}
     <div class="welcome" id="welcome"></div>
     <div class="prompt">Enter your 4-digit PIN</div>
     <div class="dots" id="dots"></div>
@@ -108,13 +149,19 @@
 
 <script>
 const PIN_LEN = 4;
+const PHOTO_CAPTURE = {{ 'true' if photo_capture else 'false' }};
 let students = [];
 let selected = null;
 let pin = "";
 let resetTimer = null;
 
 const el = (id) => document.getElementById(id);
-const screens = { names: el("screen-names"), pin: el("screen-pin"), result: el("screen-result") };
+const screens = {
+  grades: el("screen-grades"),
+  names: el("screen-names"),
+  pin: el("screen-pin"),
+  result: el("screen-result"),
+};
 
 function show(name) {
   Object.values(screens).forEach(s => s.classList.remove("active"));
@@ -123,6 +170,7 @@ function show(name) {
 
 let cameraStream = null;
 async function startCamera() {
+  if (!PHOTO_CAPTURE) return;  // camera disabled by config — no prompt, no capture
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
     el("cam").srcObject = cameraStream;
@@ -135,8 +183,9 @@ async function startCamera() {
 }
 
 function capturePhoto() {
+  if (!PHOTO_CAPTURE) return null;
   const video = el("cam");
-  if (!cameraStream || !video.videoWidth) return null;
+  if (!video || !cameraStream || !video.videoWidth) return null;
   const canvas = el("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -144,14 +193,48 @@ function capturePhoto() {
   return canvas.toDataURL("image/jpeg", 0.6);
 }
 
-async function loadStudents() {
+async function loadGrades() {
   try {
-    const res = await fetch("/api/students");
-    students = await res.json();
-    renderNames("");
+    const res = await fetch("/api/grades");
+    const grades = await res.json();
+    renderGrades(grades);
   } catch (e) {
-    el("names").innerHTML = '<div class="hint">Could not load the roster. Please see a staff member.</div>';
+    el("grades").innerHTML = '<div class="hint">Could not load grades. Please see a staff member.</div>';
   }
+}
+
+function renderGrades(grades) {
+  const box = el("grades");
+  box.innerHTML = "";
+  if (!grades.length) {
+    box.innerHTML = '<div class="hint">No students yet. Please see a staff member.</div>';
+    return;
+  }
+  grades.forEach(g => {
+    const b = document.createElement("button");
+    const empty = g.count === 0;
+    b.className = "grade-btn" + (empty ? " empty" : "");
+    b.innerHTML = `${g.grade}<span class="cnt">${g.count} student${g.count === 1 ? "" : "s"}</span>`;
+    if (empty) {
+      b.disabled = true;
+    } else {
+      b.onclick = () => selectGrade(g.grade);
+    }
+    box.appendChild(b);
+  });
+}
+
+async function selectGrade(grade) {
+  el("gradeTitle").textContent = grade;
+  el("search").value = "";
+  try {
+    const res = await fetch("/api/students?grade=" + encodeURIComponent(grade));
+    students = await res.json();
+  } catch (e) {
+    students = [];
+  }
+  renderNames("");
+  show("names");
 }
 
 function renderNames(filter) {
@@ -247,17 +330,24 @@ function showResult(data) {
 }
 
 function reset() {
-  selected = null; pin = "";
+  selected = null; pin = ""; students = [];
   el("search").value = "";
-  renderNames("");
-  show("names");
-  loadStudents();
+  show("grades");
+  loadGrades();
+}
+
+function backToGrades() {
+  selected = null; students = [];
+  el("search").value = "";
+  show("grades");
+  loadGrades();
 }
 
 el("search").addEventListener("input", (e) => renderNames(e.target.value));
-el("cancel").addEventListener("click", reset);
+el("cancel").addEventListener("click", () => show("names"));
+el("backToGrades").addEventListener("click", backToGrades);
 buildKeypad();
-loadStudents();
+loadGrades();
 startCamera();
 </script>
 </body>

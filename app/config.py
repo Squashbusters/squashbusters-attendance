@@ -22,6 +22,22 @@ class Settings(BaseSettings):
     # PIN policy
     pin_length: int = 4
 
+    # When true, the kiosk takes a photo at check-in (anti-proxy). Disabled for
+    # now — no camera prompt, no image captured. Flip via env to re-enable.
+    kiosk_photo_capture: bool = False
+
+    # Grades the kiosk always shows on the landing screen, in order. Tiles appear
+    # even when a grade has no students yet (shown but disabled), so the board is
+    # consistent for staff and students. Comma-separated; override via env.
+    kiosk_grades: str = (
+        "5th Grade,6th Grade,7th Grade,8th Grade,9th Grade,"
+        "10th Grade,11th Grade,12th Grade"
+    )
+
+    @property
+    def kiosk_grade_list(self) -> list[str]:
+        return [g.strip() for g in self.kiosk_grades.split(",") if g.strip()]
+
     # Minutes that must pass between a check-in and a check-out (prevents
     # accidental instant check-outs from a double-tap).
     time_guard_minutes: int = 30
@@ -39,6 +55,16 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_use_tls: bool = True
+
+    # SMS notifications (optional second channel to guardian phones).
+    # "off"     = never send a text (default — no cost, no setup).
+    # "console" = log the text to the server output (safe test mode).
+    # "twilio"  = actually send via the Twilio settings below.
+    # NOTE: real US SMS also requires A2P 10DLC registration and guardian opt-in.
+    sms_backend: str = "off"
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_from: str = ""  # your Twilio phone number, e.g. +16175551234
 
 
 settings = Settings()
