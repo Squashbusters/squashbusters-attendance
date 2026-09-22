@@ -62,8 +62,8 @@ def test_missing_email_is_warning_not_error(db):
     assert result.ok
     assert result.imported == 1
     assert any("no guardian email" in w.message for w in result.warnings)
-    guardian = db.query(Guardian).one()
-    assert guardian.email is None
+    # A row with no guardian details at all creates no (empty) guardian rows.
+    assert db.query(Guardian).count() == 0
 
 
 def test_invalid_email_flagged_and_not_persisted(db):

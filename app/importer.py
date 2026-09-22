@@ -3,8 +3,14 @@
 Expected columns (header row, case-insensitive):
     first_name, last_name, program, site, guardian_email, pin
 Optional columns:
-    grade           (e.g. "6th Grade"; used by the kiosk to group the name picker)
-    guardian_phone  (guardian mobile; used for the optional SMS channel)
+    grade                (e.g. "6th Grade"; groups the kiosk name picker)
+    student_email, student_phone   (the student's own contact details)
+    guardian_phone       (guardian mobile; used for the optional SMS channel)
+    Multiple guardians, any one convention:
+      * guardian1_name/relationship/email/phone, guardian2_* ...
+      * mother_name/email/phone, father_*, other_relationship/other_name/email/phone
+    contact_id, current_program_status, contact_record_type,
+    program_engagement_name        (Salesforce reference fields for the master sheet)
 
 Rules:
   * Missing first/last name        -> row skipped (error)
@@ -79,6 +85,65 @@ def _get_or_create_program(db: Session, name: str) -> Program | None:
     return program
 
 
+def _mk_guardian(name: str, relationship: str, email: str, phone: str) -> Guardian | None:
+    """Build a Guardian from raw cell values, or None if the slot is empty."""
+    name, relationship = (name or "").strip(), (relationship or "").strip()
+    email, phone = (email or "").strip(), (phone or "").strip()
+    if not (name or email or phone):
+        return None
+    return Guardian(
+        name=name or None,
+        relationship_type=relationship or None,
+        email=email or None,
+        phone=phone or None,
+    )
+
+
+def _build_guardians(row: dict) -> list[Guardian]:
+    """Extract every guardian from a row, supporting three column conventions.
+
+    Priority: guardian1_*/guardian2_*  ->  mother_/father_/other_  ->  the single
+    guardian_email/guardian_phone (backward-compatible with old rosters).
+    """
+    # Convention A: guardian1_* / guardian2_*
+    guardians: list[Guardian] = []
+    for slot in ("guardian1", "guardian2"):
+        g = _mk_guardian(
+            row.get(f"{slot}_name", ""), row.get(f"{slot}_relationship", ""),
+            row.get(f"{slot}_email", ""), row.get(f"{slot}_phone", ""),
+        )
+        if g:
+            guardians.append(g)
+    if guardians:
+        return guardians
+
+    # Convention B: mother_ / father_ / other_
+    for name_key, rel in (("mother", "Mother"), ("father", "Father")):
+        g = _mk_guardian(
+            row.get(f"{name_key}_name", ""), rel,
+            row.get(f"{name_key}_email", ""), row.get(f"{name_key}_phone", ""),
+        )
+        if g:
+            guardians.append(g)
+    other = _mk_guardian(
+        row.get("other_name", ""), row.get("other_relationship", "") or "Other",
+        row.get("other_email", ""), row.get("other_phone", ""),
+    )
+    if other:
+        guardians.append(other)
+    if guardians:
+        return guardians
+
+    # Legacy: single guardian_email / guardian_phone
+    g = _mk_guardian(
+        row.get("guardian_name", ""), row.get("guardian_relationship", ""),
+        row.get("guardian_email", ""), row.get("guardian_phone", ""),
+    )
+    if g:
+        guardians.append(g)
+    return guardians
+
+
 def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
     """Parse and import a roster CSV. Commits only if there are no hard errors."""
     if isinstance(raw, bytes):
@@ -101,7 +166,7 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
 
     # Track (site, full_name) within this file to catch in-file duplicates too.
     seen: set[tuple[str, str]] = set()
-    staged: list[tuple[Student, Guardian]] = []
+    staged: list[tuple[Student, list[Guardian]]] = []
 
     for offset, row in enumerate(reader):
         line = offset + 2  # +1 for header, +1 for 1-based counting
@@ -115,6 +180,13 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
         email = row.get("guardian_email", "")
         phone = row.get("guardian_phone", "")
         pin = row.get("pin", "")
+        # Optional Salesforce reference fields (carried into the master sheet).
+        contact_id = row.get("contact_id", "")
+        current_program_status = row.get("current_program_status", "")
+        contact_record_type = row.get("contact_record_type", "")
+        program_engagement_name = row.get("program_engagement_name", "")
+        student_email = row.get("student_email", "")
+        student_phone = row.get("student_phone", "")
 
         if not first or not last:
             result.errors.append(RowIssue(line, "Missing first_name or last_name."))
@@ -156,15 +228,17 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
             result.errors.append(RowIssue(line, "PIN is too easy to guess (e.g. 0000 / 1234)."))
             continue
 
-        if not email:
+        guardians = _build_guardians(row)
+        for g in guardians:  # clear malformed emails, keep the guardian
+            if g.email and not _valid_email(g.email):
+                result.warnings.append(
+                    RowIssue(line, f"'{first} {last}' has an invalid guardian email '{g.email}' — cleared.")
+                )
+                g.email = None
+        if not any(g.email for g in guardians):
             result.warnings.append(
-                RowIssue(line, f"'{first} {last}' has no guardian email — no notifications will be sent.")
+                RowIssue(line, f"'{first} {last}' has no guardian email — no email notifications will be sent.")
             )
-        elif not _valid_email(email):
-            result.warnings.append(
-                RowIssue(line, f"'{first} {last}' has an invalid guardian email '{email}' — flagged for follow-up.")
-            )
-            email = ""  # don't persist a malformed address
 
         seen.add(key)
         site = _get_or_create_site(db, site_name)
@@ -173,22 +247,29 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
             first_name=first,
             last_name=last,
             grade=grade or None,
+            email=student_email or None,
+            phone=student_phone or None,
+            contact_id=contact_id or None,
+            current_program_status=current_program_status or None,
+            contact_record_type=contact_record_type or None,
+            program_engagement_name=program_engagement_name or None,
             active=True,
             pin_hash=security.hash_pin(pin),
             site_id=site.id,
             program_id=program.id if program else None,
         )
-        guardian = Guardian(student=student, email=email or None, phone=phone or None)
-        staged.append((student, guardian))
+        for g in guardians:
+            g.student = student
+        staged.append((student, guardians))
 
     if result.errors:
         db.rollback()  # all-or-nothing: don't import a partially-bad file
         result.imported = 0
         return result
 
-    for student, guardian in staged:
+    for student, guardians in staged:
         db.add(student)
-        db.add(guardian)
+        db.add_all(guardians)
     db.commit()
     result.imported = len(staged)
     return result

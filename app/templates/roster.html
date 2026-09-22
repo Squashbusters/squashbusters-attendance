@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ app_name }} — Master sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Karla:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f4f7f9;--panel:#fff;--panel-2:#eef3f6;--text:#00213b;--muted:#5b6b78;
+    --accent:#0075bf;--teal:#00b1ae;--navy:#00335c;--border:#e0e5e9;
+    --head:"Fjalla One",sans-serif;--body:"Karla",-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  header{background:var(--panel);border-bottom:3px solid var(--teal);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  header h1{font-family:var(--head);font-weight:400;text-transform:uppercase;color:var(--navy);font-size:22px;margin:0;}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  a.btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:700;text-decoration:none;font-family:inherit;}
+  a.btn.secondary{background:var(--panel-2);color:var(--navy);}
+  .tabs{display:flex;gap:6px;max-width:1240px;margin:20px auto -1px;padding:0 26px;}
+  .tab{padding:10px 18px;border-radius:10px 10px 0 0;text-decoration:none;color:var(--muted);font-weight:500;font-size:15px;border:1px solid transparent;border-bottom:none;}
+  .tab.active{background:var(--panel);color:var(--navy);border-color:var(--border);}
+  main{padding:24px 26px;max-width:1240px;margin:0 auto;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,33,59,.05);}
+  .panel h2{font-family:var(--head);font-weight:400;color:var(--navy);font-size:17px;margin:0 0 14px;}
+  .recent{display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;}
+  .chip b{font-weight:500;} .chip span{color:var(--muted);}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+  input[type=search]{flex:1;min-width:240px;padding:11px 13px;border:1px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text);}
+  .count{color:var(--muted);font-size:13px;white-space:nowrap;}
+  .tablewrap{overflow:auto;border:1px solid var(--border);border-radius:12px;max-height:65vh;}
+  table{border-collapse:collapse;font-size:12.5px;white-space:nowrap;min-width:100%;}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);}
+  th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);font-weight:700;z-index:2;}
+  td.name{position:sticky;left:0;background:var(--panel);font-weight:500;}
+  th.name{position:sticky;left:0;z-index:3;}
+  tr:hover td{background:#f8fbfc;}
+  .muted{color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ app_name }} — Master sheet</h1>
+  <div class="controls">
+    <a class="btn" href="/register">+ Register student</a>
+    <a class="btn secondary" href="/logout">Log out</a>
+  </div>
+</header>
+<nav class="tabs">
+  <a class="tab" href="/dashboard">📊 Visualization</a>
+  <a class="tab active" href="/dashboard/roster">📋 Master sheet</a>
+</nav>
+<main>
+  <div class="panel">
+    <h2>Recently added</h2>
+    {% if recently_added %}
+      <div class="recent">
+        {% for r in recently_added %}
+          <div class="chip"><b>{{ r.name }}</b> <span>· {{ r.grade }} · {{ r.added }}</span></div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">No walk-in registrations yet. New sign-ups from the kiosk or dashboard show here.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search name, email, phone, guardian…" />
+      <span class="count" id="count">{{ roster|length }} students</span>
+    </div>
+    <div class="tablewrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th class="name">Student</th><th>Grade</th>
+            <th>Program status</th><th>Record type</th><th>Program</th><th>Program engagement</th><th>Site</th>
+            <th>Student email</th><th>Student phone</th>
+            <th>Mother</th><th>Mother email</th><th>Mother phone</th>
+            <th>Father</th><th>Father email</th><th>Father phone</th>
+            <th>Other guardians</th><th>Contact ID</th><th>Added</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          {% for s in roster %}
+          <tr>
+            <td class="name">{{ s.name }}</td>
+            <td>{{ s.grade or "—" }}</td>
+            <td>{{ s.current_program_status or "—" }}</td>
+            <td>{{ s.contact_record_type or "—" }}</td>
+            <td>{{ s.program or "—" }}</td>
+            <td>{{ s.program_engagement_name or "—" }}</td>
+            <td>{{ s.site or "—" }}</td>
+            <td>{{ s.student_email or "—" }}</td>
+            <td>{{ s.student_phone or "—" }}</td>
+            <td>{{ s.mother_name or "—" }}</td>
+            <td>{{ s.mother_email or "—" }}</td>
+            <td>{{ s.mother_phone or "—" }}</td>
+            <td>{{ s.father_name or "—" }}</td>
+            <td>{{ s.father_email or "—" }}</td>
+            <td>{{ s.father_phone or "—" }}</td>
+            <td>{{ s.other_guardians or "—" }}</td>
+            <td>{{ s.contact_id or "—" }}</td>
+            <td>{{ s.added or "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<script>
+  const q=document.getElementById("q"), rows=[...document.querySelectorAll("#tbody tr")], count=document.getElementById("count");
+  q.addEventListener("input", ()=>{
+    const t=q.value.trim().toLowerCase(); let n=0;
+    rows.forEach(r=>{ const show=r.textContent.toLowerCase().includes(t); r.style.display=show?"":"none"; if(show)n++; });
+    count.textContent = n + " of {{ roster|length }} students";
+  });
+</script>
+</body>
+</html>

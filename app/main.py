@@ -8,7 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import settings
 from app.database import init_db
-from app.routers import admin, api, dashboard, kiosk, outbox
+from app.routers import admin, api, dashboard, kiosk, outbox, register
 
 # Surface our INFO logs (e.g. the console email backend) in the server output.
 logging.getLogger("attendance").setLevel(logging.INFO)
@@ -25,6 +25,7 @@ def _redirect_to_login(request: Request, exc: auth.NotAuthenticated):
 
 
 app.include_router(kiosk.router)
+app.include_router(register.router)
 app.include_router(api.router)
 app.include_router(auth.router)
 app.include_router(dashboard.router)

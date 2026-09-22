@@ -38,6 +38,9 @@ def _student(db, site, first, program_name, email):
 def test_summary_counts_present_still_in_and_checked_out(db, site):
     a = _student(db, site, "Aisha", "Middle School", "a@example.com")
     b = _student(db, site, "Ben", "High School", "b@example.com")
+    a.grade = "7th Grade"
+    b.grade = "9th Grade"
+    db.commit()
 
     # Aisha checks in and out; Ben checks in and stays.
     process_scan(db, a.id, "7382", now=MORNING)
@@ -49,7 +52,8 @@ def test_summary_counts_present_still_in_and_checked_out(db, site):
     assert summary["still_in"] == 1
     assert summary["checked_out"] == 1
     assert summary["missing_email"] == 0
-    assert summary["by_program"] == {"Middle School": 1, "High School": 1}
+    assert summary["by_grade"] == {"7th Grade": 1, "9th Grade": 1}
+    assert summary["total_active"] == 2
 
 
 def test_missing_email_is_counted(db, site):

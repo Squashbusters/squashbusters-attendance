@@ -43,6 +43,15 @@ class Student(Base):
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # When this student was added (walk-in registration) — powers "recently added".
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=True
+    )
+    # Reference fields carried over from Salesforce (nullable — walk-ins won't have them).
+    contact_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    current_program_status: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    contact_record_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    program_engagement_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     # Never store a readable PIN — only its hash. Nullable so a student can
     # exist before a PIN is set (supports the deferred onboarding decision).

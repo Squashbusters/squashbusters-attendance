@@ -18,7 +18,13 @@ from sqlalchemy.orm import Session
 from app.auth import require_login
 from app.config import settings
 from app.database import get_db
-from app.reporting import get_daily_rows, get_daily_summary
+from app.reporting import (
+    get_attendance_trend,
+    get_daily_rows,
+    get_daily_summary,
+    get_recently_added,
+    get_roster,
+)
 
 router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_login)])
 templates = Jinja2Templates(
@@ -50,9 +56,29 @@ def dashboard(request: Request, day: str | None = None, db: Session = Depends(ge
     )
 
 
+@router.get("/dashboard/roster", response_class=HTMLResponse)
+def roster(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse(
+        "roster.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+            "roster": get_roster(db),
+            "recently_added": get_recently_added(db),
+        },
+    )
+
+
 @router.get("/api/dashboard/summary")
 def dashboard_summary(day: str | None = None, site_id: int | None = None, db: Session = Depends(get_db)):
     return get_daily_summary(db, _parse_day(day), site_id)
+
+
+@router.get("/api/dashboard/trend")
+def dashboard_trend(
+    day: str | None = None, days: int = 7, site_id: int | None = None, db: Session = Depends(get_db)
+):
+    return get_attendance_trend(db, _parse_day(day), days, site_id)
 
 
 @router.get("/report/daily", response_class=HTMLResponse)
