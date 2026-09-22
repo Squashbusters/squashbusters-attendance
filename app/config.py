@@ -15,9 +15,23 @@ class Settings(BaseSettings):
     # Secret for signing the staff login session cookie. Override in production.
     secret_key: str = "dev-secret-change-me-in-production"
 
-    # When true, on startup create the admin user and import the sample roster
-    # if the database is empty. Used for the hosted demo so it's self-populating.
+    # When true, on startup ensure the admin user exists (and, if seed_sample_roster
+    # is also true, import the sample roster when the DB is empty).
     seed_on_startup: bool = False
+    # Only load the 10-student sample roster in demo mode. Turn OFF in production
+    # so real data isn't mixed with fake students.
+    seed_sample_roster: bool = True
+
+    # Staff/admin account created on first startup. Override the password in
+    # production via the ADMIN_PASSWORD env var — never leave it as "changeme".
+    admin_username: str = "admin"
+    admin_password: str = "changeme"
+
+    # When true (local/demo), the kiosk and its API are open with no login — handy
+    # for testing. Set PUBLIC_KIOSK=0 in production so the whole app is behind the
+    # staff login (the tablet is signed in once per shift), keeping student names
+    # off a public URL.
+    public_kiosk: bool = True
 
     # PIN policy
     pin_length: int = 4

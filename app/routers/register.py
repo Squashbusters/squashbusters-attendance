@@ -12,12 +12,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app import security
+from app.auth import require_kiosk_access
 from app.config import settings
 from app.database import get_db
 from app.importer import _get_or_create_program, _get_or_create_site
 from app.models import Guardian, Student
 
-router = APIRouter(tags=["register"])
+router = APIRouter(tags=["register"], dependencies=[Depends(require_kiosk_access)])
 templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent.parent / "templates")
 )

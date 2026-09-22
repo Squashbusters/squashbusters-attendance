@@ -1,24 +1,45 @@
-# Render Blueprint — one-click deploy for a shareable demo.
-# In Render: New → Blueprint → pick this repo → Apply. No secrets to enter.
+# Render Blueprint.
 #
-# This demo build uses SQLite + the "file" email backend (emails show in the
-# in-app /outbox, none are actually sent) and self-seeds the sample roster on
-# startup. To enable real email later, add EMAIL_BACKEND=smtp and the SMTP_*
-# vars in the Render dashboard.
+# DEMO mode = leave PUBLIC_KIOSK=1 + SEED_SAMPLE_ROSTER=1 (sample data, open kiosk).
+# PRODUCTION (real students) uses this file's defaults: a persistent Postgres DB,
+# the whole app behind the staff login (PUBLIC_KIOSK=0), no sample data, and an
+# admin password you set in the dashboard (never in git).
+#
+# After first deploy: sign in, then Dashboard → Import roster to load the real
+# CSV. Real student PII goes through the app into Postgres — never through GitHub.
+
+databases:
+  - name: squashbusters-db
+    # free = fine to start (expires after 90 days); basic-256mb (~$6/mo) for real use.
+    plan: free
+    databaseName: attendance
+    user: attendance
+
 services:
   - type: web
     name: squashbusters-attendance
     runtime: python
+    # free sleeps when idle (slow first hit); starter (~$7/mo) stays warm.
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: squashbusters-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      - key: SEED_ON_STARTUP
+      - key: PUBLIC_KIOSK          # 0 = whole app behind staff login (production)
+        value: "0"
+      - key: SEED_ON_STARTUP       # ensures the admin user exists
         value: "1"
+      - key: SEED_SAMPLE_ROSTER    # 0 = do NOT load the 10 fake students
+        value: "0"
+      - key: ADMIN_PASSWORD        # set a strong value in the dashboard (not in git)
+        sync: false
       - key: EMAIL_BACKEND
         value: file
       - key: TIME_GUARD_MINUTES

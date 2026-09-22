@@ -6,13 +6,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth import require_kiosk_access
 from app.config import settings
 from app.database import get_db
 from app.models import Site, Student
 from app.notifications import payload_from_result, send_notification, send_sms_notification
 from app.services import process_scan
 
-router = APIRouter(prefix="/api", tags=["kiosk"])
+router = APIRouter(prefix="/api", tags=["kiosk"], dependencies=[Depends(require_kiosk_access)])
 
 
 class StudentOut(BaseModel):

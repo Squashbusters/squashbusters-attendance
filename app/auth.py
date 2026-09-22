@@ -40,6 +40,18 @@ def require_admin(request: Request) -> dict:
     return user
 
 
+def require_kiosk_access(request: Request) -> None:
+    """Gate the kiosk/API/registration.
+
+    Open when PUBLIC_KIOSK is true (local/demo). In production (PUBLIC_KIOSK=0)
+    it requires a staff session, so student names never appear on a public URL —
+    the tablet is signed in once per shift.
+    """
+    if settings.public_kiosk:
+        return
+    require_login(request)
+
+
 @router.get("/login", response_class=HTMLResponse)
 def login_form(request: Request, error: str | None = None):
     return templates.TemplateResponse(

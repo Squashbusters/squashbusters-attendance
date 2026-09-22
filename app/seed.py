@@ -18,17 +18,20 @@ DEFAULT_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_roster.c
 
 
 def ensure_admin(db) -> None:
-    if db.query(StaffUser).filter(StaffUser.username == "admin").first():
+    from app.config import settings
+
+    if db.query(StaffUser).filter(StaffUser.username == settings.admin_username).first():
         return
     db.add(
         StaffUser(
-            username="admin",
-            password_hash=hash_password("changeme"),
+            username=settings.admin_username,
+            password_hash=hash_password(settings.admin_password),
             role="admin",
         )
     )
     db.commit()
-    print("Created default admin user: admin / changeme  (change this!)")
+    note = " (change this!)" if settings.admin_password == "changeme" else ""
+    print(f"Created admin user: {settings.admin_username}{note}")
 
 
 def seed_if_empty() -> None:
@@ -36,11 +39,13 @@ def seed_if_empty() -> None:
     are no students yet, import the sample roster."""
     from app.models import Student
 
+    from app.config import settings
+
     init_db()
     db = SessionLocal()
     try:
         ensure_admin(db)
-        if db.query(Student).count() == 0:
+        if settings.seed_sample_roster and db.query(Student).count() == 0:
             import_roster_csv(db, DEFAULT_CSV.read_bytes())
             print("Seeded sample roster on startup.")
     finally:
