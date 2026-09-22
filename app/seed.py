@@ -19,19 +19,32 @@ DEFAULT_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_roster.c
 
 def ensure_admin(db) -> None:
     from app.config import settings
+    from app.security import verify_password
 
-    if db.query(StaffUser).filter(StaffUser.username == settings.admin_username).first():
-        return
-    db.add(
-        StaffUser(
-            username=settings.admin_username,
-            password_hash=hash_password(settings.admin_password),
-            role="admin",
-        )
+    admin = (
+        db.query(StaffUser).filter(StaffUser.username == settings.admin_username).first()
     )
-    db.commit()
-    note = " (change this!)" if settings.admin_password == "changeme" else ""
-    print(f"Created admin user: {settings.admin_username}{note}")
+    if admin is None:
+        db.add(
+            StaffUser(
+                username=settings.admin_username,
+                password_hash=hash_password(settings.admin_password),
+                role="admin",
+            )
+        )
+        db.commit()
+        note = " (change this!)" if settings.admin_password == "changeme" else ""
+        print(f"Created admin user: {settings.admin_username}{note}")
+        return
+
+    # Admin exists: if a real ADMIN_PASSWORD is set and differs, update it so the
+    # env var stays the source of truth (fixes the "already created as changeme" case).
+    if settings.admin_password != "changeme" and not verify_password(
+        settings.admin_password, admin.password_hash
+    ):
+        admin.password_hash = hash_password(settings.admin_password)
+        db.commit()
+        print("Updated admin password from ADMIN_PASSWORD.")
 
 
 def seed_if_empty() -> None:
