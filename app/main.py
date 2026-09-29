@@ -51,7 +51,7 @@ def _startup() -> None:
 @app.get("/")
 def root() -> RedirectResponse:
     """Base URL points at the kiosk's dedicated path."""
-    return RedirectResponse("/sqb-kiosk", status_code=307)
+    return RedirectResponse("/kiosk", status_code=307)
 
 
 @app.get("/health")

@@ -13,7 +13,7 @@ router = APIRouter(tags=["kiosk-ui"], dependencies=[Depends(require_kiosk_access
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
-@router.get("/sqb-kiosk", response_class=HTMLResponse)
+@router.get("/kiosk", response_class=HTMLResponse)
 def kiosk(request: Request):
     return templates.TemplateResponse(
         "kiosk.html",
