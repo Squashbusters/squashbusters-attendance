@@ -69,7 +69,7 @@ def test_staff_routes_require_login(client, path):
 
 
 # --- production lockdown (PUBLIC_KIOSK=0) ---------------------------------
-@pytest.mark.parametrize("path", ["/", "/register", "/api/students", "/api/dashboard/summary"])
+@pytest.mark.parametrize("path", ["/sqb-kiosk", "/register", "/api/students", "/api/dashboard/summary"])
 def test_kiosk_locked_when_public_kiosk_off(client, monkeypatch, path):
     monkeypatch.setattr(settings, "public_kiosk", False)
     r = client.get(path, follow_redirects=False)
@@ -79,12 +79,18 @@ def test_kiosk_locked_when_public_kiosk_off(client, monkeypatch, path):
 
 def test_kiosk_open_when_public_kiosk_on(client, monkeypatch):
     monkeypatch.setattr(settings, "public_kiosk", True)
-    assert client.get("/").status_code == 200
+    assert client.get("/sqb-kiosk").status_code == 200
     assert client.get("/api/students").status_code == 200
+
+
+def test_root_redirects_to_kiosk(client):
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code in (302, 307)
+    assert r.headers["location"] == "/sqb-kiosk"
 
 
 def test_logged_in_staff_can_use_locked_kiosk(client, monkeypatch):
     monkeypatch.setattr(settings, "public_kiosk", False)
     _login(client)
-    assert client.get("/").status_code == 200
+    assert client.get("/sqb-kiosk").status_code == 200
     assert client.get("/api/students").status_code == 200

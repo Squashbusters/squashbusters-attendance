@@ -48,6 +48,12 @@ def _startup() -> None:
         seed_if_empty()
 
 
+@app.get("/")
+def root() -> RedirectResponse:
+    """Base URL points at the kiosk's dedicated path."""
+    return RedirectResponse("/sqb-kiosk", status_code=307)
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "app": settings.app_name}
