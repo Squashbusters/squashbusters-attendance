@@ -94,6 +94,10 @@ class SmtpEmailSender:
 
 
 def get_email_sender() -> EmailSender:
+    if settings.email_backend == "graph":
+        from app.graph_email import GraphEmailSender  # lazy: only needs httpx here
+
+        return GraphEmailSender()
     if settings.email_backend == "smtp":
         return SmtpEmailSender()
     if settings.email_backend == "file":

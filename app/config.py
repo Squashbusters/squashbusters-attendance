@@ -74,6 +74,14 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_use_tls: bool = True
 
+    # Microsoft Graph email backend (EMAIL_BACKEND=graph). Uses an Azure AD app
+    # (client-credentials OAuth) with Mail.Send application permission + admin
+    # consent. graph_sender is the mailbox to send from.
+    graph_tenant_id: str = ""
+    graph_client_id: str = ""
+    graph_client_secret: str = ""
+    graph_sender: str = ""
+
     # SMS notifications (optional second channel to guardian phones).
     # "off"     = never send a text (default — no cost, no setup).
     # "console" = log the text to the server output (safe test mode).
