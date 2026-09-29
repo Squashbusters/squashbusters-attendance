@@ -26,6 +26,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: TZ                    # so check-in times show in Boston time, not UTC
+        value: "America/New_York"
       - key: DATABASE_URL
         fromDatabase:
           name: squashbusters-db
