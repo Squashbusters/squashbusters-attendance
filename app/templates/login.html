@@ -23,6 +23,7 @@
 </head>
 <body>
   <form class="card" method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next or '' }}" />
     <h1>{{ app_name }}</h1>
     <p class="sub">Staff &amp; leadership sign-in</p>
     {% if error %}<div class="err">Wrong username or password.</div>{% endif %}

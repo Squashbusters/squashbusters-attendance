@@ -21,7 +21,13 @@ app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 @app.exception_handler(auth.NotAuthenticated)
 def _redirect_to_login(request: Request, exc: auth.NotAuthenticated):
-    return RedirectResponse("/login", status_code=303)
+    from urllib.parse import quote
+
+    nxt = request.url.path
+    if request.url.query:
+        nxt += "?" + request.url.query
+    target = "/login" if nxt in ("/login", "") else f"/login?next={quote(nxt, safe='')}"
+    return RedirectResponse(target, status_code=303)
 
 
 app.include_router(kiosk.router)
