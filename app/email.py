@@ -14,6 +14,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Protocol
 
+from app.clock import local_now
 from app.config import settings
 
 logger = logging.getLogger("attendance.email")
@@ -47,7 +48,7 @@ class FileEmailSender:
 
     def send(self, to: str, subject: str, text: str, html: str | None = None) -> None:
         self.outbox.mkdir(parents=True, exist_ok=True)
-        now = datetime.now()
+        now = local_now()
         path = self.outbox / (now.strftime("%Y%m%d-%H%M%S-%f") + ".html")
 
         body = html or f"<pre style='font-family:inherit'>{html_lib.escape(text)}</pre>"

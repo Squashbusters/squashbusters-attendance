@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # off a public URL.
     public_kiosk: bool = True
 
+    # The single timezone the program operates in — all check-in times are
+    # recorded and displayed in this zone (not the server's UTC).
+    timezone: str = "America/New_York"
+
     # PIN policy
     pin_length: int = 4
 

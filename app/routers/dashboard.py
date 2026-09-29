@@ -16,6 +16,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.auth import require_login
+from app.clock import local_today
 from app.config import settings
 from app.database import get_db
 from app.reporting import (
@@ -34,11 +35,11 @@ templates = Jinja2Templates(
 
 def _parse_day(day: str | None) -> date:
     if not day:
-        return date.today()
+        return local_today()
     try:
         return date.fromisoformat(day)
     except ValueError:
-        return date.today()
+        return local_today()
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import security
+from app.clock import local_now
 from app.config import settings
 from app.domain import Action, decide_action
 from app.models import AttendanceEvent, Student
@@ -87,7 +88,7 @@ def process_scan(
     session_type: str | None = None,
     photo: str | None = None,
 ) -> ScanResult:
-    now = now or datetime.now()
+    now = now or local_now()
 
     student = db.get(Student, student_id)
     if student is None:
