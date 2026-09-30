@@ -8,7 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import settings
 from app.database import init_db
-from app.routers import admin, api, dashboard, kiosk, outbox, register
+from app.routers import admin, api, dashboard, kiosk, manage, outbox, register
 
 # Surface our INFO logs (e.g. the console email backend) in the server output.
 logging.getLogger("attendance").setLevel(logging.INFO)
@@ -35,6 +35,7 @@ app.include_router(register.router)
 app.include_router(api.router)
 app.include_router(auth.router)
 app.include_router(dashboard.router)
+app.include_router(manage.router)
 app.include_router(outbox.router)
 app.include_router(admin.router)
 

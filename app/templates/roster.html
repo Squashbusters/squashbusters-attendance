@@ -40,6 +40,7 @@
   th.name{position:sticky;left:0;z-index:3;}
   tr:hover td{background:#f8fbfc;}
   .muted{color:var(--muted);}
+  a.edit{display:inline-block;background:var(--accent);color:#fff;border-radius:7px;padding:4px 10px;font-weight:700;text-decoration:none;font-size:12px;}
 </style>
 </head>
 <body>
@@ -77,7 +78,7 @@
       <table id="tbl">
         <thead>
           <tr>
-            <th class="name">Student</th><th>Grade</th>
+            <th class="name">Student</th><th>Edit</th><th>Grade</th>
             <th>Program status</th><th>Record type</th><th>Program</th><th>Program engagement</th><th>Site</th>
             <th>Student email</th><th>Student phone</th>
             <th>Mother</th><th>Mother email</th><th>Mother phone</th>
@@ -89,6 +90,7 @@
           {% for s in roster %}
           <tr>
             <td class="name">{{ s.name }}</td>
+            <td><a class="edit" href="/manage/student/{{ s.id }}">Edit</a></td>
             <td>{{ s.grade or "—" }}</td>
             <td>{{ s.current_program_status or "—" }}</td>
             <td>{{ s.contact_record_type or "—" }}</td>

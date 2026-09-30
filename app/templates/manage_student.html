@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ app_name }} — Edit {{ student.full_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Karla:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f4f7f9;--panel:#fff;--panel-2:#eef3f6;--text:#00213b;--muted:#5b6b78;
+    --accent:#0075bf;--teal:#00b1ae;--navy:#00335c;--border:#e0e5e9;--danger:#c0392b;
+    --head:"Fjalla One",sans-serif;--body:"Karla",-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  header{background:var(--panel);border-bottom:3px solid var(--teal);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  header h1{font-family:var(--head);font-weight:400;text-transform:uppercase;color:var(--navy);font-size:20px;margin:0;}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  a.btn,button.btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:700;text-decoration:none;font-family:inherit;cursor:pointer;}
+  .btn.secondary{background:var(--panel-2);color:var(--navy);}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--border);}
+  .btn.danger{background:var(--danger);}
+  main{padding:24px 26px;max-width:860px;margin:0 auto;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,33,59,.05);}
+  .panel h2{font-family:var(--head);font-weight:400;color:var(--navy);font-size:17px;margin:0 0 16px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.full{grid-column:1 / -1;}
+  label{font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+  input,select{padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text);}
+  .grow{border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px;position:relative;background:#fbfdfe;}
+  .grow .grid{grid-template-columns:1fr 1fr;}
+  .gremove{position:absolute;top:10px;right:10px;background:transparent;border:none;color:var(--danger);font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;}
+  .banner{border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:14px;}
+  .banner.ok{background:#e6f7f2;border:1px solid #9fe3d3;color:#08674f;}
+  .banner.err{background:#fdecea;border:1px solid #f5b7b1;color:var(--danger);}
+  .banner.pin{background:#fff6e0;border:1px solid #f4d77a;color:#7a5b00;}
+  .banner.pin b{font-family:var(--head);font-size:22px;letter-spacing:.14em;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .spacer{flex:1;}
+  .subtle{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  @media(max-width:620px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Edit student</h1>
+  <div class="controls">
+    <a class="btn secondary" href="/dashboard/roster">← Back to master sheet</a>
+    <a class="btn secondary" href="/logout">Log out</a>
+  </div>
+</header>
+<main>
+  {% if saved %}<div class="banner ok">✓ Changes saved.</div>{% endif %}
+  {% if error %}<div class="banner err">{{ error }}</div>{% endif %}
+  {% if new_pin %}<div class="banner pin">New PIN for {{ student.full_name }}: <b>{{ new_pin }}</b> — write it down now; it won't be shown again.</div>{% endif %}
+
+  <form method="post" action="/manage/student/{{ student.id }}">
+    <div class="panel">
+      <h2>Student details</h2>
+      <div class="grid">
+        <div class="field"><label>First name</label><input name="first_name" value="{{ student.first_name }}" required /></div>
+        <div class="field"><label>Last name</label><input name="last_name" value="{{ student.last_name }}" required /></div>
+        <div class="field"><label>Grade</label>
+          <select name="grade">
+            <option value="">— none —</option>
+            {% for g in grades %}<option value="{{ g }}" {% if student.grade==g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+            {% if student.grade and student.grade not in grades %}<option value="{{ student.grade }}" selected>{{ student.grade }}</option>{% endif %}
+          </select>
+        </div>
+        <div class="field"><label>Student email</label><input name="student_email" type="email" value="{{ student.email or '' }}" /></div>
+        <div class="field"><label>Student phone</label><input name="student_phone" value="{{ student.phone or '' }}" /></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Guardians</h2>
+      <p class="subtle">Edit any field, remove a guardian with ✕, or add another. A guardian needs an email or phone to receive check-in notifications.</p>
+      <div id="guardians">
+        {% for g in guardians %}
+        <div class="grow">
+          <button type="button" class="gremove" onclick="this.parentElement.remove()">✕ Remove</button>
+          <input type="hidden" name="g-{{ loop.index0 }}-id" value="{{ g.id }}" />
+          <div class="grid">
+            <div class="field"><label>Name</label><input name="g-{{ loop.index0 }}-name" value="{{ g.name or '' }}" /></div>
+            <div class="field"><label>Relationship</label><input name="g-{{ loop.index0 }}-relationship" value="{{ g.relationship_type or '' }}" placeholder="Mother / Father / Aunt…" /></div>
+            <div class="field"><label>Email</label><input name="g-{{ loop.index0 }}-email" type="email" value="{{ g.email or '' }}" /></div>
+            <div class="field"><label>Phone</label><input name="g-{{ loop.index0 }}-phone" value="{{ g.phone or '' }}" /></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn ghost" onclick="addGuardian()">+ Add guardian</button>
+    </div>
+
+    <div class="panel">
+      <div class="actions">
+        <button type="submit" class="btn">Save changes</button>
+        <div class="spacer"></div>
+      </div>
+    </div>
+  </form>
+
+  <div class="panel">
+    <h2>PIN &amp; removal</h2>
+    <div class="actions">
+      <form method="post" action="/manage/student/{{ student.id }}/reset-pin" onsubmit="return confirm('Generate a new PIN? The student\'s old PIN will stop working immediately.');">
+        <button type="submit" class="btn secondary">Reset PIN</button>
+      </form>
+      <div class="spacer"></div>
+      <form method="post" action="/manage/student/{{ student.id }}/delete" onsubmit="return confirm('Delete {{ student.full_name }} permanently? This removes the student, their guardians, and all their attendance records. This cannot be undone.');">
+        <button type="submit" class="btn danger">Delete student</button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<template id="gtpl">
+  <div class="grow">
+    <button type="button" class="gremove" onclick="this.parentElement.remove()">✕ Remove</button>
+    <input type="hidden" name="g-IDX-id" value="" />
+    <div class="grid">
+      <div class="field"><label>Name</label><input name="g-IDX-name" /></div>
+      <div class="field"><label>Relationship</label><input name="g-IDX-relationship" placeholder="Mother / Father / Aunt…" /></div>
+      <div class="field"><label>Email</label><input name="g-IDX-email" type="email" /></div>
+      <div class="field"><label>Phone</label><input name="g-IDX-phone" /></div>
+    </div>
+  </div>
+</template>
+<script>
+  // New rows use indices at/above the existing count, so they never collide
+  // with existing rows even after removals.
+  let gi = {{ guardians|length }};
+  function addGuardian(){
+    const tpl = document.getElementById("gtpl").innerHTML.replaceAll("IDX", gi++);
+    const wrap = document.createElement("div");
+    wrap.innerHTML = tpl.trim();
+    document.getElementById("guardians").appendChild(wrap.firstChild);
+  }
+</script>
+</body>
+</html>

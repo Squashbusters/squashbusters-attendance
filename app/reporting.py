@@ -158,6 +158,7 @@ def get_roster(db: Session, site_id: int | None = None) -> list[dict]:
             f"{g.name} ({g.relationship_type or 'Other'})" for g in others if g.name
         )
         rows.append({
+            "id": s.id,
             "name": s.full_name,
             "grade": s.grade or "",
             "current_program_status": s.current_program_status or "",
