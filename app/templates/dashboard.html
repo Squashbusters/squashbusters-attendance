@@ -48,9 +48,16 @@
   .flash{max-width:1040px;margin:16px auto 0;padding:12px 16px;border-radius:10px;font-size:14px;font-weight:500;}
   .flash.ok{background:#e6f7f0;color:#0b7a53;border:1px solid #bfe8d6;}
   .flash.err{background:#fdecec;color:#b42318;border:1px solid #f6c9c4;}
-  .manual{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-  .manual select{flex:1;min-width:240px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:var(--panel);color:var(--navy);}
+  .manual{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}
   .manual .hint{color:var(--muted);font-size:13px;margin:8px 0 0;}
+  .combo{position:relative;flex:1;min-width:260px;}
+  .combo input[type=text]{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:var(--panel);color:var(--navy);}
+  .combo-list{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;max-height:280px;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);}
+  .combo-list[hidden]{display:none;}
+  .combo-list li{padding:9px 12px;border-radius:8px;font-size:14.5px;color:var(--navy);cursor:pointer;}
+  .combo-list li:hover,.combo-list li.active{background:var(--panel-2);}
+  .combo-list li .g{color:var(--muted);font-size:12.5px;margin-left:6px;}
+  .combo-list li.none{color:var(--muted);cursor:default;}
 </style>
 </head>
 <body>
@@ -73,13 +80,16 @@
 
   <div class="panel">
     <h2>Manual check-in / out</h2>
-    <form class="manual" method="post" action="/dashboard/scan">
-      <select name="student_id" required>
-        <option value="" disabled selected>Select a student…</option>
-        {% for s in students %}
-        <option value="{{ s.id }}">{{ s.name }}{% if s.grade %} — {{ s.grade }}{% endif %}</option>
-        {% endfor %}
-      </select>
+    <form class="manual" method="post" action="/dashboard/scan" id="manualForm">
+      <div class="combo" id="combo">
+        <input type="text" id="comboInput" placeholder="Type a name, or click to pick…" autocomplete="off" aria-label="Student" />
+        <input type="hidden" name="student_id" id="comboId" />
+        <ul class="combo-list" id="comboList" hidden>
+          {% for s in students %}
+          <li data-id="{{ s.id }}" data-text="{{ s.name }}{% if s.grade %} — {{ s.grade }}{% endif %}">{{ s.name }}{% if s.grade %}<span class="g">{{ s.grade }}</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
       <button class="btn" type="submit">Check in / out</button>
     </form>
     <p class="hint">For staff use (e.g. a forgotten PIN). The system checks the student in if they're out, or out if they're in — and emails their guardian, just like the kiosk.</p>
@@ -173,6 +183,61 @@ dayInput.addEventListener("change", load);
 renderSummary({{ summary | tojson }});
 load();
 setInterval(load, 15000);  // live refresh
+</script>
+
+<script>
+// Searchable student combobox for the manual check-in/out panel.
+(function(){
+  const combo=document.getElementById('combo');
+  if(!combo) return;
+  const input=document.getElementById('comboInput');
+  const hidden=document.getElementById('comboId');
+  const list=document.getElementById('comboList');
+  const form=document.getElementById('manualForm');
+  const items=Array.from(list.querySelectorAll('li[data-id]'));
+
+  function show(){ list.hidden=false; }
+  function hide(){ list.hidden=true; items.forEach(li=>li.classList.remove('active')); }
+
+  function filter(q){
+    q=(q||'').trim().toLowerCase();
+    let shown=0;
+    items.forEach(li=>{
+      const match=li.dataset.text.toLowerCase().includes(q);
+      li.style.display=match?'':'none';
+      if(match) shown++;
+    });
+    let none=list.querySelector('li.none');
+    if(shown===0){
+      if(!none){ none=document.createElement('li'); none.className='none'; none.textContent='No match'; list.appendChild(none); }
+      none.style.display='';
+    } else if(none){ none.style.display='none'; }
+    show();
+  }
+
+  function pick(li){ input.value=li.dataset.text; hidden.value=li.dataset.id; hide(); }
+  function setActive(vis,idx){ items.forEach(li=>li.classList.remove('active')); const li=vis[idx]; if(li){ li.classList.add('active'); li.scrollIntoView({block:'nearest'}); } }
+
+  input.addEventListener('click', ()=>filter(input.value));
+  input.addEventListener('focus', ()=>filter(input.value));
+  input.addEventListener('input', ()=>{ hidden.value=''; filter(input.value); });  // typing clears a prior pick
+  items.forEach(li=>li.addEventListener('mousedown', e=>{ e.preventDefault(); pick(li); }));
+
+  input.addEventListener('keydown', e=>{
+    const vis=items.filter(li=>li.style.display!=='none');
+    let idx=vis.findIndex(li=>li.classList.contains('active'));
+    if(e.key==='ArrowDown'){ e.preventDefault(); show(); setActive(vis, Math.min(idx+1, vis.length-1)); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); setActive(vis, Math.max(idx-1, 0)); }
+    else if(e.key==='Enter'){ if(!list.hidden && vis[idx]){ e.preventDefault(); pick(vis[idx]); } }
+    else if(e.key==='Escape'){ hide(); }
+  });
+
+  document.addEventListener('click', e=>{ if(!combo.contains(e.target)) hide(); });
+
+  form.addEventListener('submit', e=>{
+    if(!hidden.value){ e.preventDefault(); input.focus(); filter(''); alert('Please pick a student from the list.'); }
+  });
+})();
 </script>
 </body>
 </html>
