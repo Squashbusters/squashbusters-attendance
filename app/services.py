@@ -87,7 +87,16 @@ def process_scan(
     now: datetime | None = None,
     session_type: str | None = None,
     photo: str | None = None,
+    require_pin: bool = True,
+    guard_minutes: int | None = None,
 ) -> ScanResult:
+    """Check a student in or out.
+
+    The kiosk calls this with the student's PIN. A signed-in staff member can
+    instead call it with ``require_pin=False`` (the dashboard's manual control),
+    since they're already authenticated; pass ``guard_minutes=0`` there so a
+    staff correction isn't blocked by the accidental-double-tap guard.
+    """
     now = now or local_now()
 
     student = db.get(Student, student_id)
@@ -95,14 +104,14 @@ def process_scan(
         return ScanResult(ScanStatus.NOT_FOUND)
     if not student.active:
         return ScanResult(ScanStatus.INACTIVE, student=student)
-    if not security.verify_pin(pin, student.pin_hash):
+    if require_pin and not security.verify_pin(pin, student.pin_hash):
         return ScanResult(ScanStatus.BAD_PIN, student=student)
 
     open_event = _find_open_event_today(db, student.id, now)
     decision = decide_action(
         open_event.check_in_at if open_event else None,
         now=now,
-        guard_minutes=settings.time_guard_minutes,
+        guard_minutes=settings.time_guard_minutes if guard_minutes is None else guard_minutes,
     )
 
     if decision.action is Action.BLOCKED_TIME_GUARD:

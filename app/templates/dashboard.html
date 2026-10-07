@@ -45,6 +45,12 @@
   .tabs{display:flex;gap:6px;max-width:1040px;margin:20px auto -1px;padding:0 26px;}
   .tab{padding:10px 18px;border-radius:10px 10px 0 0;text-decoration:none;color:var(--muted);font-weight:500;font-size:15px;border:1px solid transparent;border-bottom:none;}
   .tab.active{background:var(--panel);color:var(--navy);border-color:var(--border);}
+  .flash{max-width:1040px;margin:16px auto 0;padding:12px 16px;border-radius:10px;font-size:14px;font-weight:500;}
+  .flash.ok{background:#e6f7f0;color:#0b7a53;border:1px solid #bfe8d6;}
+  .flash.err{background:#fdecec;color:#b42318;border:1px solid #f6c9c4;}
+  .manual{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .manual select{flex:1;min-width:240px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:var(--panel);color:var(--navy);}
+  .manual .hint{color:var(--muted);font-size:13px;margin:8px 0 0;}
 </style>
 </head>
 <body>
@@ -63,6 +69,22 @@
   <a class="tab" href="/dashboard/roster">📋 Master sheet</a>
 </nav>
 <main>
+  {% if flash %}<div class="flash {{ 'ok' if flash_ok else 'err' }}">{{ flash }}</div>{% endif %}
+
+  <div class="panel">
+    <h2>Manual check-in / out</h2>
+    <form class="manual" method="post" action="/dashboard/scan">
+      <select name="student_id" required>
+        <option value="" disabled selected>Select a student…</option>
+        {% for s in students %}
+        <option value="{{ s.id }}">{{ s.name }}{% if s.grade %} — {{ s.grade }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">Check in / out</button>
+    </form>
+    <p class="hint">For staff use (e.g. a forgotten PIN). The system checks the student in if they're out, or out if they're in — and emails their guardian, just like the kiosk.</p>
+  </div>
+
   <div class="cards">
     <div class="card present"><div class="num" id="present">{{ summary.present }}</div><div class="label">Present today</div></div>
     <div class="card in"><div class="num" id="stillin">{{ summary.still_in }}</div><div class="label">Currently in the center</div></div>

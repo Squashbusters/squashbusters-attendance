@@ -8,9 +8,10 @@ from __future__ import annotations
 import csv
 import io
 from datetime import date
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from sqlalchemy.orm import Session
@@ -19,6 +20,11 @@ from app.auth import require_login
 from app.clock import local_today
 from app.config import settings
 from app.database import get_db
+from app.notifications import (
+    payload_from_result,
+    send_notification,
+    send_sms_notification,
+)
 from app.reporting import (
     get_attendance_trend,
     get_daily_rows,
@@ -26,6 +32,7 @@ from app.reporting import (
     get_recently_added,
     get_roster,
 )
+from app.services import process_scan
 
 router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_login)])
 templates = Jinja2Templates(
@@ -43,9 +50,20 @@ def _parse_day(day: str | None) -> date:
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, day: str | None = None, db: Session = Depends(get_db)):
+def dashboard(
+    request: Request,
+    day: str | None = None,
+    msg: str | None = None,
+    ok: str | None = None,
+    db: Session = Depends(get_db),
+):
     the_day = _parse_day(day)
     summary = get_daily_summary(db, the_day)
+    # Lightweight list for the manual check-in picker (active students only).
+    students = [
+        {"id": r["id"], "name": r["name"], "grade": r["grade"]}
+        for r in get_roster(db)
+    ]
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -53,7 +71,37 @@ def dashboard(request: Request, day: str | None = None, db: Session = Depends(ge
             "app_name": settings.app_name,
             "summary": summary,
             "day": the_day.isoformat(),
+            "students": students,
+            "flash": msg,
+            "flash_ok": (ok != "0") if msg else None,
         },
+    )
+
+
+@router.post("/dashboard/scan")
+def dashboard_scan(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    student_id: int = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Staff-side manual check-in/out from the dashboard.
+
+    No PIN needed (the staff member is already signed in) and the double-tap
+    guard is bypassed, so a correction right after a kiosk scan isn't blocked.
+    Fires the same guardian notification as a kiosk scan.
+    """
+    result = process_scan(db, student_id, pin="", require_pin=False, guard_minutes=0)
+
+    notif = payload_from_result(result)
+    if notif is not None:
+        background_tasks.add_task(send_notification, notif)
+        background_tasks.add_task(send_sms_notification, notif)
+
+    ok_flag = "1" if result.ok else "0"
+    return RedirectResponse(
+        url=f"/dashboard?msg={quote(result.message)}&ok={ok_flag}",
+        status_code=303,
     )
 
 
