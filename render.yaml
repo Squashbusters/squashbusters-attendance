@@ -42,7 +42,17 @@ services:
         value: "0"
       - key: ADMIN_PASSWORD        # set a strong value in the dashboard (not in git)
         sync: false
-      - key: EMAIL_BACKEND
-        value: file
+      - key: EMAIL_BACKEND         # graph = send live via Microsoft Graph
+        value: graph
+      - key: EMAIL_FROM
+        value: "SquashBusters Attendance <SQBBoston@squashbusters.org>"
+      - key: GRAPH_SENDER          # mailbox the app sends as
+        value: SQBBoston@squashbusters.org
+      - key: GRAPH_TENANT_ID       # set in dashboard (not in git)
+        sync: false
+      - key: GRAPH_CLIENT_ID       # set in dashboard (not in git)
+        sync: false
+      - key: GRAPH_CLIENT_SECRET   # set in dashboard (secret, not in git)
+        sync: false
       - key: TIME_GUARD_MINUTES
         value: "30"
