@@ -1,14 +1,18 @@
 """FastAPI application entry point."""
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import auth
 from app.config import settings
 from app.database import init_db
 from app.routers import admin, api, dashboard, kiosk, manage, outbox, register
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 # Surface our INFO logs (e.g. the console email backend) in the server output.
 logging.getLogger("attendance").setLevel(logging.INFO)
@@ -17,6 +21,13 @@ if not logging.getLogger().handlers:
 
 app = FastAPI(title=settings.app_name)
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    """Serve the SquashBusters icon for browsers that auto-request /favicon.ico."""
+    return FileResponse(STATIC_DIR / "favicon.ico")
 
 
 @app.exception_handler(auth.NotAuthenticated)
