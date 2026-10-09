@@ -29,6 +29,7 @@ from app.reporting import (
     get_attendance_trend,
     get_daily_rows,
     get_daily_summary,
+    get_missing_contact,
     get_recently_added,
     get_roster,
 )
@@ -115,6 +116,32 @@ def roster(request: Request, db: Session = Depends(get_db)):
             "roster": get_roster(db),
             "recently_added": get_recently_added(db),
         },
+    )
+
+
+@router.get("/report/missing", response_class=HTMLResponse)
+def missing_contact_report(request: Request, db: Session = Depends(get_db)):
+    """Active students with no guardian email (they receive no notifications)."""
+    rows = get_missing_contact(db)
+    return templates.TemplateResponse(
+        "missing_contact.html",
+        {"request": request, "app_name": settings.app_name, "rows": rows},
+    )
+
+
+@router.get("/report/missing.csv")
+def missing_contact_csv(db: Session = Depends(get_db)):
+    rows = get_missing_contact(db)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Student", "Grade", "Site", "Guardians on file", "Has phone", "Phone"])
+    for r in rows:
+        w.writerow([r["name"], r["grade"], r["site"], r["guardians"],
+                    "Yes" if r["has_phone"] else "No", r["phone"]])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]), media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=missing_contact.csv"},
     )
 
 

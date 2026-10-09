@@ -209,3 +209,28 @@ def get_attendance_trend(
         present = len(get_daily_rows(db, d, site_id))
         out.append({"date": d.isoformat(), "label": d.strftime("%a %-m/%-d"), "present": present})
     return out
+
+
+def get_missing_contact(db: Session, site_id: int | None = None) -> list[dict]:
+    """Active students with NO guardian email on file (so they receive no
+    notifications). Flags whether a guardian phone exists as a fallback."""
+    stmt = select(Student).where(Student.active.is_(True))
+    if site_id is not None:
+        stmt = stmt.where(Student.site_id == site_id)
+    rows: list[dict] = []
+    for s in db.execute(stmt).scalars().all():
+        if any(g.email for g in s.guardians):
+            continue  # has at least one guardian email -> not missing
+        phones = [g.phone for g in s.guardians if g.phone]
+        names = [g.name for g in s.guardians if g.name]
+        rows.append({
+            "id": s.id,
+            "name": s.full_name,
+            "grade": s.grade or "—",
+            "site": s.site.name if s.site else "",
+            "guardians": ", ".join(names) if names else "(none on file)",
+            "has_phone": bool(phones),
+            "phone": phones[0] if phones else "",
+        })
+    rows.sort(key=lambda r: (_grade_sort_key(r["grade"]), r["name"].lower()))
+    return rows

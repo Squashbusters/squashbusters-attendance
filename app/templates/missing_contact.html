@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ app_name }} — Missing guardian contact</title>
+<link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  :root{ --navy:#0f2a4a; --teal:#00a7a0; --blue:#1e6fbf; --muted:#5b6b78; --border:#e0e5e9; --panel:#fff; --bg:#f1f5f9; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--navy);}
+  header{display:flex;align-items:baseline;gap:14px;padding:18px 26px;background:var(--panel);border-bottom:3px solid var(--teal);}
+  header h1{font-size:22px;margin:0;}
+  header a{color:var(--blue);text-decoration:none;font-size:14px;}
+  main{max-width:1040px;margin:22px auto;padding:0 26px;}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  h2{font-size:22px;margin:0;}
+  .sub{color:var(--muted);font-size:14px;margin:4px 0 0;}
+  .btn{display:inline-block;background:var(--blue);color:#fff;padding:9px 14px;border-radius:9px;text-decoration:none;font-size:14px;font-weight:600;}
+  .count{display:inline-block;background:#fdecec;color:#b42318;border:1px solid #f6c9c4;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;}
+  .count.ok{background:#e6f7f0;color:#0b7a53;border-color:#bfe8d6;}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:14px;}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);}
+  th{background:var(--navy);color:#fff;font-weight:600;font-size:13px;}
+  tr:nth-child(even) td{background:#f5f8fb;}
+  .pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;}
+  .pill.no{background:#fdecec;color:#b42318;}
+  .pill.yes{background:#e6f7f0;color:#0b7a53;}
+  .empty{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ app_name }}</h1>
+  <a href="/dashboard">← Back to dashboard</a>
+</header>
+<main>
+  <div class="top">
+    <div>
+      <h2>Students missing guardian contact</h2>
+      <p class="sub">Active students with no guardian email on file. These students receive no attendance notifications until an email is added.</p>
+    </div>
+    {% if rows %}<a class="btn" href="/report/missing.csv">Download CSV</a>{% endif %}
+  </div>
+
+  {% if rows %}
+  <p><span class="count">{{ rows|length }} student{{ '' if rows|length == 1 else 's' }} missing a guardian email</span></p>
+  <table>
+    <thead>
+      <tr><th>Student</th><th>Grade</th><th>Site</th><th>Guardians on file</th><th>Phone on file?</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><strong>{{ r.name }}</strong></td>
+        <td>{{ r.grade }}</td>
+        <td>{{ r.site }}</td>
+        <td>{{ r.guardians }}</td>
+        <td>{% if r.has_phone %}<span class="pill yes">Phone: {{ r.phone }}</span>{% else %}<span class="pill no">No phone either</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="sub" style="margin-top:12px;">To fix: open the Master sheet, click Edit on a student, and add a guardian email.</p>
+  {% else %}
+  <p><span class="count ok">All clear</span></p>
+  <div class="empty">Every active student has at least one guardian email on file. Nothing to follow up on.</div>
+  {% endif %}
+</main>
+</body>
+</html>

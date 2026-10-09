@@ -62,6 +62,11 @@
       <div class="pin">{{ new_pin }}</div>
     </div>
     <p class="warn">Write this down — it won't be shown again. Use it at the kiosk under {{ new_grade }}.</p>
+    {% if warning %}
+    <div style="margin:14px 0;padding:12px 14px;border-radius:10px;background:#FBF3E2;border:1px solid #E6C786;color:#8A6410;font-size:14px;text-align:left;">
+      <strong>Heads up:</strong> {{ warning }}
+    </div>
+    {% endif %}
     <div class="actions">
       <a class="btn" href="/">Done — go to check-in</a>
       <a class="btn secondary" href="/register">Register another</a>

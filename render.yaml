@@ -56,3 +56,36 @@ services:
         sync: false
       - key: TIME_GUARD_MINUTES
         value: "30"
+
+  # Daily attendance digest email. Runs once each evening and emails a summary
+  # (only on days with at least one check-in). 00:00 UTC = 8:00 PM EDT / 7:00 PM EST.
+  - type: cron
+    name: squashbusters-daily-digest
+    runtime: python
+    plan: starter            # cron jobs run on paid compute; tiny (a few seconds/day)
+    schedule: "0 0 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.daily_digest
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: TZ
+        value: "America/New_York"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: squashbusters-db
+          property: connectionString
+      - key: EMAIL_BACKEND
+        value: graph
+      - key: EMAIL_FROM
+        value: "SquashBusters Attendance <SQBBoston@squashbusters.org>"
+      - key: GRAPH_SENDER
+        value: SQBBoston@squashbusters.org
+      - key: GRAPH_TENANT_ID       # set in dashboard (same value as the web service)
+        sync: false
+      - key: GRAPH_CLIENT_ID       # set in dashboard (same value as the web service)
+        sync: false
+      - key: GRAPH_CLIENT_SECRET   # set in dashboard (same value as the web service)
+        sync: false
+      - key: DIGEST_RECIPIENTS     # who gets the daily report (change to Carolina later)
+        value: jain.rishabh.2904@gmail.com

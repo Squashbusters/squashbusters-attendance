@@ -70,6 +70,7 @@
     <input type="date" id="day" value="{{ day }}" />
     <a class="btn" href="/register">+ Register student</a>
     <a class="btn" id="reportLink" href="/report/daily?day={{ day }}">Daily report</a>
+    <a class="btn secondary" href="/report/missing">Missing contact</a>
     <a class="btn secondary" href="/admin/import">Import roster</a>
     <a class="btn secondary" href="/logout">Log out</a>
   </div>
@@ -103,7 +104,7 @@
     <div class="card in"><div class="num" id="stillin">{{ summary.still_in }}</div><div class="label">Currently in the center</div></div>
     <div class="card"><div class="num" id="out">{{ summary.checked_out }}</div><div class="label">Checked out</div></div>
     <div class="card rate"><div class="num" id="rate">{{ summary.attendance_rate }}%</div><div class="label"><span id="ratectx">of {{ summary.total_active }} active</span></div></div>
-    <div class="card amber"><div class="num" id="noemail">{{ summary.missing_email }}</div><div class="label">Missing guardian email</div></div>
+    <a class="card amber" href="/report/missing" style="text-decoration:none;color:inherit;" title="View the list of students missing a guardian email"><div class="num" id="noemail">{{ summary.missing_email }}</div><div class="label">Missing guardian email &rsaquo;</div></a>
   </div>
 
   <div class="grid2">

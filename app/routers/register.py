@@ -112,10 +112,10 @@ def register_student(
                                 (other_relationship or "Other").strip() or "Other"),
         ) if g is not None
     ]
-    if not guardians:
-        return render(error="At least one guardian is required (mark absent parents N/A, or add an 'Other' guardian).")
-    if not any(g.email or g.phone for g in guardians):
-        return render(error="At least one guardian needs an email or phone so notifications can be sent.")
+    # Contact info is encouraged but not required. A student with no guardian
+    # email can still be registered and check in; staff follow up later using the
+    # "Students missing guardian contact" report on the dashboard.
+    has_guardian_email = any(g.email for g in guardians)
 
     the_site = _get_or_create_site(db, site)
     the_program = _get_or_create_program(db, program)
@@ -137,4 +137,11 @@ def register_student(
     db.add_all(guardians)
     db.commit()
 
-    return render(created=True, new_pin=pin, new_name=f"{first_name} {last_name}", new_grade=grade)
+    warning = None
+    if not has_guardian_email:
+        warning = (
+            "No guardian email was added, so this student will not receive attendance "
+            "notifications yet. Add a guardian email later from the dashboard (Edit student)."
+        )
+
+    return render(created=True, new_pin=pin, new_name=f"{first_name} {last_name}", new_grade=grade, warning=warning)
