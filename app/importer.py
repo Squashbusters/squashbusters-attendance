@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 from app import security
 from app.models import Guardian, Program, Site, Student
 
-REQUIRED_COLUMNS = {"first_name", "last_name", "program", "site", "guardian_email", "pin"}
+REQUIRED_COLUMNS = {"first_name", "last_name", "program", "site"}
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -46,6 +46,9 @@ class ImportResult:
     imported: int = 0
     errors: list[RowIssue] = field(default_factory=list)
     warnings: list[RowIssue] = field(default_factory=list)
+    # One entry per imported student: {"name", "grade", "pin"}. Holds the
+    # plaintext PINs assigned during this import (for the one-time handout sheet).
+    created: list[dict] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -218,15 +221,15 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
             )
             continue
 
+        # PINs are optional in the file: if a row has no PIN (or a bad/weak one),
+        # the system assigns a secure random PIN. The assigned PINs are returned so
+        # staff can download and hand them out (they can't be recovered later).
         if not pin:
-            result.errors.append(RowIssue(line, "Missing PIN."))
-            continue
-        if not security.is_valid_pin_format(pin):
-            result.errors.append(RowIssue(line, f"PIN must be exactly {security.settings.pin_length} digits."))
-            continue
-        if security.is_weak_pin(pin):
-            result.errors.append(RowIssue(line, "PIN is too easy to guess (e.g. 0000 / 1234)."))
-            continue
+            pin = security.generate_pin()
+        elif not security.is_valid_pin_format(pin) or security.is_weak_pin(pin):
+            result.warnings.append(RowIssue(
+                line, f"'{first} {last}' had a missing, invalid, or weak PIN in the file — a new one was generated."))
+            pin = security.generate_pin()
 
         guardians = _build_guardians(row)
         for g in guardians:  # clear malformed emails, keep the guardian
@@ -260,16 +263,17 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
         )
         for g in guardians:
             g.student = student
-        staged.append((student, guardians))
+        staged.append((student, guardians, {"name": f"{first} {last}", "grade": grade or "", "pin": pin}))
 
     if result.errors:
         db.rollback()  # all-or-nothing: don't import a partially-bad file
         result.imported = 0
         return result
 
-    for student, guardians in staged:
+    for student, guardians, _meta in staged:
         db.add(student)
         db.add_all(guardians)
     db.commit()
     result.imported = len(staged)
+    result.created = [meta for (_s, _g, meta) in staged]
     return result

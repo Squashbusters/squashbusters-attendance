@@ -48,13 +48,39 @@
     {% if result.warnings %}<div class="card"><b>Warnings</b><ul>{% for w in result.warnings %}<li>line {{ w.line }}: {{ w.message }}</li>{% endfor %}</ul></div>{% endif %}
   {% endif %}
 
+  {% if created %}
+    <div class="banner warn">⚠ These PINs are shown once and cannot be recovered later. Download or print this list now, then hand each PIN to its student.</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <b>Assigned PINs ({{ created|length }})</b>
+        <a class="btn" style="margin-top:0;text-decoration:none;display:inline-block;" download="assigned_pins.csv" href="data:text/csv;base64,{{ pin_csv_b64 }}">Download PIN sheet (CSV)</a>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;">
+        <thead><tr style="text-align:left;color:var(--muted);">
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Student</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Grade</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);">PIN</th>
+        </tr></thead>
+        <tbody>
+        {% for r in created %}
+          <tr>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">{{ r.name }}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">{{ r.grade }}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:700;letter-spacing:2px;">{{ r.pin }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
   <div class="card">
     <form method="post" action="/admin/import" enctype="multipart/form-data">
       <label class="sub" style="display:block;margin-bottom:8px;">Roster CSV file</label>
       <input type="file" name="file" accept=".csv" required />
       <div><button class="btn" type="submit">Upload &amp; import</button></div>
     </form>
-    <p class="sub" style="margin-top:16px;font-size:13px;">Required columns: <code>first_name, last_name, program, site, guardian_email, pin</code>. Optional: <code>grade, student_email, student_phone, guardian_phone, guardian1_*/guardian2_*</code>, and Salesforce reference fields.</p>
+    <p class="sub" style="margin-top:16px;font-size:13px;">Required columns: <code>first_name, last_name, program, site</code>. Optional: <code>grade, pin, guardian_email, guardian_phone, student_email, student_phone</code>, and Salesforce reference fields. <b>If the <code>pin</code> column is blank (or missing), the system assigns a secure PIN automatically</b> and shows the list to download here.</p>
   </div>
 </div>
 </body>
