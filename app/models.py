@@ -53,9 +53,12 @@ class Student(Base):
     contact_record_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
     program_engagement_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
-    # Never store a readable PIN — only its hash. Nullable so a student can
-    # exist before a PIN is set (supports the deferred onboarding decision).
+    # pin_hash verifies check-ins. pin holds the readable PIN so staff can look
+    # it up from the dashboard PIN panel and course-correct in real time
+    # (deliberate choice for these low-stakes, admin-only kiosk PINs). Both are
+    # set together whenever a PIN is generated or changed.
     pin_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    pin: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), index=True)
     program_id: Mapped[int | None] = mapped_column(

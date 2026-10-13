@@ -128,6 +128,7 @@ def register_student(
         phone=student_phone.strip() or None,
         active=True,
         pin_hash=security.hash_pin(pin),
+        pin=pin,
         site_id=the_site.id,
         program_id=the_program.id if the_program else None,
     )

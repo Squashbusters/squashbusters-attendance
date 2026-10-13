@@ -258,6 +258,7 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
             program_engagement_name=program_engagement_name or None,
             active=True,
             pin_hash=security.hash_pin(pin),
+            pin=pin,
             site_id=site.id,
             program_id=program.id if program else None,
         )

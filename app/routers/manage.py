@@ -142,9 +142,13 @@ def reset_pin(student_id: int, request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/dashboard/roster", status_code=303)
     pin = security.generate_pin()
     student.pin_hash = security.hash_pin(pin)
+    student.pin = pin
     db.commit()
     # Hand the new PIN to the edit page via the session (kept out of the URL).
     request.session[f"pin_{student_id}"] = pin
+    # Return to the PIN panel when the reset was triggered from there.
+    if request.query_params.get("next") == "pins":
+        return RedirectResponse("/dashboard/pins", status_code=303)
     return RedirectResponse(f"/manage/student/{student_id}", status_code=303)
 
 

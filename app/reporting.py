@@ -161,6 +161,7 @@ def get_roster(db: Session, site_id: int | None = None) -> list[dict]:
             "id": s.id,
             "name": s.full_name,
             "grade": s.grade or "",
+            "pin": s.pin or "",
             "current_program_status": s.current_program_status or "",
             "contact_record_type": s.contact_record_type or "",
             "program_engagement_name": s.program_engagement_name or "",
@@ -182,10 +183,16 @@ def get_roster(db: Session, site_id: int | None = None) -> list[dict]:
 
 
 def get_recently_added(db: Session, limit: int = 10) -> list[dict]:
-    """Most recently registered students (those with a created_at)."""
+    """Most recently registered students added through the system (walk-in
+    registrations). Bulk-imported roster students carry a Salesforce
+    contact_id; walk-ins do not, so filter to contact_id IS NULL."""
     stmt = (
         select(Student)
-        .where(Student.active.is_(True), Student.created_at.is_not(None))
+        .where(
+            Student.active.is_(True),
+            Student.created_at.is_not(None),
+            Student.contact_id.is_(None),
+        )
         .order_by(Student.created_at.desc())
         .limit(limit)
     )

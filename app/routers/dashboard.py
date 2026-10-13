@@ -119,6 +119,22 @@ def roster(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/dashboard/pins", response_class=HTMLResponse)
+def pins_panel(request: Request, db: Session = Depends(get_db)):
+    """One screen listing every student so staff can reset a PIN in real time.
+    The reset itself reuses the existing /manage/student/{id}/reset-pin flow,
+    which generates a new PIN and shows it once (PINs stay hashed at rest)."""
+    students = sorted(get_roster(db), key=lambda s: (s["grade"], s["name"]))
+    return templates.TemplateResponse(
+        "pins.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+            "students": students,
+        },
+    )
+
+
 @router.get("/report/missing", response_class=HTMLResponse)
 def missing_contact_report(request: Request, db: Session = Depends(get_db)):
     """Active students with no guardian email (they receive no notifications)."""

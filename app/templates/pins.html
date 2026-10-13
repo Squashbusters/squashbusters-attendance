@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ app_name }} — PINs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Karla:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f4f7f9;--panel:#fff;--panel-2:#eef3f6;--text:#00213b;--muted:#5b6b78;
+    --accent:#0075bf;--teal:#00b1ae;--navy:#00335c;--border:#e0e5e9;
+    --head:"Fjalla One",sans-serif;--body:"Karla",-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  header{background:var(--panel);border-bottom:3px solid var(--teal);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  header h1{font-family:var(--head);font-weight:400;text-transform:uppercase;color:var(--navy);font-size:22px;margin:0;}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  a.btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:700;text-decoration:none;font-family:inherit;}
+  a.btn.secondary{background:var(--panel-2);color:var(--navy);}
+  .tabs{display:flex;gap:6px;max-width:1240px;margin:20px auto -1px;padding:0 26px;}
+  .tab{padding:10px 18px;border-radius:10px 10px 0 0;text-decoration:none;color:var(--muted);font-weight:500;font-size:15px;border:1px solid transparent;border-bottom:none;}
+  .tab.active{background:var(--panel);color:var(--navy);border-color:var(--border);}
+  main{padding:24px 26px;max-width:1240px;margin:0 auto;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,33,59,.05);}
+  .panel h2{font-family:var(--head);font-weight:400;color:var(--navy);font-size:17px;margin:0 0 6px;}
+  .hint{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+  input[type=search]{flex:1;min-width:240px;padding:11px 13px;border:1px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text);}
+  .count{color:var(--muted);font-size:13px;white-space:nowrap;}
+  .tablewrap{overflow:auto;border:1px solid var(--border);border-radius:12px;max-height:68vh;}
+  table{border-collapse:collapse;font-size:14px;width:100%;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);}
+  th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);font-weight:700;z-index:2;}
+  td.name{font-weight:500;}
+  tr:hover td{background:#f8fbfc;}
+  .pin{font-variant-numeric:tabular-nums;letter-spacing:3px;color:var(--muted);}
+  button.reset{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;}
+  td.right{text-align:right;}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ app_name }} — PINs</h1>
+  <div class="controls">
+    <a class="btn" href="/register">+ Register student</a>
+    <a class="btn secondary" href="/logout">Log out</a>
+  </div>
+</header>
+<nav class="tabs">
+  <a class="tab" href="/dashboard">Report</a>
+  <a class="tab" href="/dashboard/roster">Records</a>
+  <a class="tab active" href="/dashboard/pins">PINs</a>
+</nav>
+
+<main>
+  <div class="panel">
+    <h2>Student PINs</h2>
+    <p class="hint">Each student's current PIN is shown below so staff can course-correct in real time.
+      To change one, click <b>Reset PIN</b> — a new PIN is generated and appears here immediately.
+      Keep this screen to authorized staff only.</p>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search student name…" />
+      <span class="count" id="count">{{ students|length }} students</span>
+    </div>
+    <div class="tablewrap">
+      <table id="tbl">
+        <thead>
+          <tr><th class="name">Student</th><th>Grade</th><th>PIN</th><th class="right">Action</th></tr>
+        </thead>
+        <tbody id="tbody">
+          {% for s in students %}
+          <tr>
+            <td class="name">{{ s.name }}</td>
+            <td>{{ s.grade or "—" }}</td>
+            <td class="pin">{{ s.pin or "—" }}</td>
+            <td class="right">
+              <form method="post" action="/manage/student/{{ s.id }}/reset-pin?next=pins" style="margin:0;">
+                <button class="reset" type="submit">Reset PIN</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  const q = document.getElementById('q');
+  const rows = Array.from(document.querySelectorAll('#tbody tr'));
+  const count = document.getElementById('count');
+  q.addEventListener('input', () => {
+    const t = q.value.trim().toLowerCase();
+    let n = 0;
+    rows.forEach(r => {
+      const show = r.querySelector('.name').textContent.toLowerCase().includes(t);
+      r.style.display = show ? '' : 'none';
+      if (show) n++;
+    });
+    count.textContent = n + ' students';
+  });
+</script>
+</body>
+</html>
