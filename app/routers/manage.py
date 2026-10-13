@@ -152,6 +152,20 @@ def reset_pin(student_id: int, request: Request, db: Session = Depends(get_db)):
     return RedirectResponse(f"/manage/student/{student_id}", status_code=303)
 
 
+@router.post("/manage/student/{student_id}/reset-pin.json")
+def reset_pin_json(student_id: int, db: Session = Depends(get_db)):
+    """Regenerate a PIN and return it as JSON, so the PIN panel can update one
+    row in place without reloading the whole page."""
+    student = _get_student(db, student_id)
+    if student is None:
+        return {"ok": False}
+    pin = security.generate_pin()
+    student.pin_hash = security.hash_pin(pin)
+    student.pin = pin
+    db.commit()
+    return {"ok": True, "pin": pin}
+
+
 @router.post("/manage/student/{student_id}/delete")
 def delete_student(student_id: int, db: Session = Depends(get_db)):
     student = _get_student(db, student_id)

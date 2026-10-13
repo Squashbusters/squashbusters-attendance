@@ -77,7 +77,7 @@
             <td>{{ s.grade or "—" }}</td>
             <td class="pin">{{ s.pin or "—" }}</td>
             <td class="right">
-              <form method="post" action="/manage/student/{{ s.id }}/reset-pin?next=pins" style="margin:0;">
+              <form method="post" class="reset-form" data-id="{{ s.id }}" action="/manage/student/{{ s.id }}/reset-pin?next=pins" style="margin:0;">
                 <button class="reset" type="submit">Reset PIN</button>
               </form>
             </td>
@@ -102,6 +102,31 @@
       if (show) n++;
     });
     count.textContent = n + ' students';
+  });
+
+  // Reset a PIN in place — no full-page reload, keep scroll position.
+  document.querySelectorAll('form.reset-form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button');
+      const row = form.closest('tr');
+      const cell = row.querySelector('.pin');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/manage/student/' + form.dataset.id + '/reset-pin.json', {
+          method: 'POST', headers: { 'X-Requested-With': 'fetch' },
+        });
+        const data = await res.json();
+        if (data.ok && data.pin) {
+          cell.textContent = data.pin;
+          row.style.transition = 'background-color .15s';
+          row.style.backgroundColor = '#fff6d6';
+          setTimeout(() => { row.style.backgroundColor = ''; }, 1100);
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
   });
 </script>
 </body>
