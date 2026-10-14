@@ -30,7 +30,9 @@
   .chip{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;}
   .chip b{font-weight:500;} .chip span{color:var(--muted);}
   .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
-  input[type=search]{flex:1;min-width:240px;padding:11px 13px;border:1px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text);}
+  input[type=search]{flex:1;min-width:200px;padding:11px 13px;border:1px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text);}
+  .filtersel{padding:11px 10px;border:1px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);}
+  .statussel{padding:5px 6px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;font-family:inherit;background:#fff;color:var(--text);cursor:pointer;}
   .count{color:var(--muted);font-size:13px;white-space:nowrap;}
   .tablewrap{overflow:auto;border:1px solid var(--border);border-radius:12px;max-height:65vh;}
   table{border-collapse:collapse;font-size:12.5px;white-space:nowrap;min-width:100%;}
@@ -74,6 +76,14 @@
   <div class="panel">
     <div class="toolbar">
       <input type="search" id="q" placeholder="Search name, email, phone, guardian…" />
+      <select id="gradeFilter" class="filtersel"><option value="">All grades</option></select>
+      <select id="statusFilter" class="filtersel">
+        <option value="">All statuses</option>
+        <option value="Active">Active</option>
+        <option value="Trying Out">Trying Out</option>
+        <option value="Inactive">Inactive</option>
+        <option value="__blank__">No status</option>
+      </select>
       <span class="count" id="count">{{ roster|length }} students</span>
     </div>
     <div class="tablewrap">
@@ -85,16 +95,23 @@
             <th>Student email</th><th>Student phone</th>
             <th>Mother</th><th>Mother email</th><th>Mother phone</th>
             <th>Father</th><th>Father email</th><th>Father phone</th>
-            <th>Other guardians</th><th>Contact ID</th>
+            <th>Other guardians</th>
           </tr>
         </thead>
         <tbody id="tbody">
           {% for s in roster %}
-          <tr>
+          <tr data-grade="{{ s.grade }}" data-status="{{ s.status }}">
             <td class="name">{{ s.name }}</td>
             <td><a class="edit" href="/manage/student/{{ s.id }}">Edit</a></td>
             <td>{{ s.grade or "—" }}</td>
-            <td>{{ s.status or "—" }}</td>
+            <td>
+              <select class="statussel" data-id="{{ s.id }}">
+                <option value="" {% if not s.status %}selected{% endif %}>—</option>
+                <option value="Active" {% if s.status=='Active' %}selected{% endif %}>Active</option>
+                <option value="Trying Out" {% if s.status=='Trying Out' %}selected{% endif %}>Trying Out</option>
+                <option value="Inactive" {% if s.status=='Inactive' %}selected{% endif %}>Inactive</option>
+              </select>
+            </td>
             <td>{{ s.site or "—" }}</td>
             <td>{{ s.student_email or "—" }}</td>
             <td>{{ s.student_phone or "—" }}</td>
@@ -105,7 +122,6 @@
             <td>{{ s.father_email or "—" }}</td>
             <td>{{ s.father_phone or "—" }}</td>
             <td>{{ s.other_guardians or "—" }}</td>
-            <td>{{ s.contact_id or "—" }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -115,10 +131,38 @@
 </main>
 <script>
   const q=document.getElementById("q"), rows=[...document.querySelectorAll("#tbody tr")], count=document.getElementById("count");
-  q.addEventListener("input", ()=>{
-    const t=q.value.trim().toLowerCase(); let n=0;
-    rows.forEach(r=>{ const show=r.textContent.toLowerCase().includes(t); r.style.display=show?"":"none"; if(show)n++; });
-    count.textContent = n + " of {{ roster|length }} students";
+  const gradeFilter=document.getElementById("gradeFilter"), statusFilter=document.getElementById("statusFilter");
+  // Populate grade options from the data
+  [...new Set(rows.map(r=>r.dataset.grade).filter(Boolean))]
+    .sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99))
+    .forEach(g=>{ const o=document.createElement("option"); o.value=g; o.textContent=g; gradeFilter.appendChild(o); });
+  const total={{ roster|length }};
+  function apply(){
+    const t=q.value.trim().toLowerCase(), gf=gradeFilter.value, sf=statusFilter.value; let n=0;
+    rows.forEach(r=>{
+      const okText=r.textContent.toLowerCase().includes(t);
+      const okGrade=!gf || r.dataset.grade===gf;
+      const okStatus=!sf || (sf==="__blank__" ? !r.dataset.status : r.dataset.status===sf);
+      const show=okText&&okGrade&&okStatus;
+      r.style.display=show?"":"none"; if(show)n++;
+    });
+    count.textContent = n + " of " + total + " students";
+  }
+  q.addEventListener("input", apply);
+  gradeFilter.addEventListener("change", apply);
+  statusFilter.addEventListener("change", apply);
+  // Inline status change — save without opening the edit page
+  document.querySelectorAll(".statussel").forEach(sel=>{
+    sel.addEventListener("change", async ()=>{
+      sel.disabled=true;
+      try{
+        const body=new URLSearchParams({status:sel.value});
+        const res=await fetch("/manage/student/"+sel.dataset.id+"/status",{method:"POST",body});
+        if(res.ok){ sel.closest("tr").dataset.status=sel.value;
+          const prev=sel.style.background; sel.style.background="#e3f6ee";
+          setTimeout(()=>{sel.style.background=prev;},800); apply(); }
+      } finally { sel.disabled=false; }
+    });
   });
 </script>
 </body>

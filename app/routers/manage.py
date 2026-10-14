@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -151,6 +151,18 @@ def reset_pin(student_id: int, request: Request, db: Session = Depends(get_db)):
     if request.query_params.get("next") == "pins":
         return RedirectResponse("/dashboard/pins", status_code=303)
     return RedirectResponse(f"/manage/student/{student_id}", status_code=303)
+
+
+@router.post("/manage/student/{student_id}/status")
+def set_status(student_id: int, status: str = Form(""), db: Session = Depends(get_db)):
+    """Update a student's status inline from the Records table (Active / Trying
+    Out / Inactive / blank)."""
+    student = _get_student(db, student_id)
+    if student is None:
+        return {"ok": False}
+    student.current_program_status = (status or "").strip() or None
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/manage/student/{student_id}/reset-pin.json")
