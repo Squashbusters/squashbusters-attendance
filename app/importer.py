@@ -169,6 +169,9 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
 
     # Track (site, full_name) within this file to catch in-file duplicates too.
     seen: set[tuple[str, str]] = set()
+    # PINs already in use (existing students + those assigned earlier in this
+    # file), so no two students ever share a PIN.
+    taken: set[str] = security.existing_pins(db)
     staged: list[tuple[Student, list[Guardian]]] = []
 
     for offset, row in enumerate(reader):
@@ -225,11 +228,16 @@ def import_roster_csv(db: Session, raw: str | bytes) -> ImportResult:
         # the system assigns a secure random PIN. The assigned PINs are returned so
         # staff can download and hand them out (they can't be recovered later).
         if not pin:
-            pin = security.generate_pin()
+            pin = security.generate_pin(taken)
         elif not security.is_valid_pin_format(pin) or security.is_weak_pin(pin):
             result.warnings.append(RowIssue(
                 line, f"'{first} {last}' had a missing, invalid, or weak PIN in the file — a new one was generated."))
-            pin = security.generate_pin()
+            pin = security.generate_pin(taken)
+        elif pin in taken:
+            result.warnings.append(RowIssue(
+                line, f"'{first} {last}' had a PIN already in use — a new unique one was generated."))
+            pin = security.generate_pin(taken)
+        taken.add(pin)
 
         guardians = _build_guardians(row)
         for g in guardians:  # clear malformed emails, keep the guardian

@@ -119,7 +119,7 @@ def register_student(
 
     the_site = _get_or_create_site(db, site)
     the_program = _get_or_create_program(db, program)
-    pin = security.generate_pin()
+    pin = security.generate_pin(security.existing_pins(db))
     student = Student(
         first_name=first_name,
         last_name=last_name,

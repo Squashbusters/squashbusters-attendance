@@ -141,7 +141,7 @@ def reset_pin(student_id: int, request: Request, db: Session = Depends(get_db)):
     student = _get_student(db, student_id)
     if student is None:
         return RedirectResponse("/dashboard/roster", status_code=303)
-    pin = security.generate_pin()
+    pin = security.generate_pin(security.existing_pins(db))
     student.pin_hash = security.hash_pin(pin)
     student.pin = pin
     db.commit()
@@ -172,7 +172,7 @@ def reset_pin_json(student_id: int, db: Session = Depends(get_db)):
     student = _get_student(db, student_id)
     if student is None:
         return {"ok": False}
-    pin = security.generate_pin()
+    pin = security.generate_pin(security.existing_pins(db))
     student.pin_hash = security.hash_pin(pin)
     student.pin = pin
     db.commit()

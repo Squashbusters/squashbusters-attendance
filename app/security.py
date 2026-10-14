@@ -39,13 +39,27 @@ def is_weak_pin(pin: str) -> bool:
     return pin in (ascending, descending)
 
 
-def generate_pin() -> str:
-    """A cryptographically-random PIN of PIN_LENGTH digits, never a weak one."""
+def generate_pin(taken: set[str] | None = None) -> str:
+    """A cryptographically-random PIN of PIN_LENGTH digits, never a weak one and
+    never one already in `taken` (pass the set of PINs already in use so two
+    students never share a PIN — PIN-only lookups depend on uniqueness)."""
     upper = 10 ** settings.pin_length
     while True:
         pin = f"{secrets.randbelow(upper):0{settings.pin_length}d}"
-        if not is_weak_pin(pin):
-            return pin
+        if is_weak_pin(pin):
+            continue
+        if taken and pin in taken:
+            continue
+        return pin
+
+
+def existing_pins(db) -> set[str]:
+    """All readable PINs currently in use, for collision-free generation."""
+    from app.models import Student
+
+    return {
+        p for (p,) in db.query(Student.pin).filter(Student.pin.isnot(None)).all() if p
+    }
 
 
 def hash_pin(pin: str) -> str:
