@@ -10,8 +10,14 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
+    env:
+      TZ: America/New_York   # log timestamps in Boston time, not UTC
     steps:
       - name: Ping health endpoint
         run: |
-          curl -fsS --max-time 90 https://squashbusters-attendance.onrender.com/health \
-            && echo "pinged OK" || echo "ping failed (app may have been waking up)"
+          STAMP="$(date '+%m-%d-%Y %I:%M:%S %p %Z')"
+          if curl -fsS --max-time 90 https://squashbusters-attendance.onrender.com/health > /dev/null; then
+            echo "ping  $STAMP  OK"
+          else
+            echo "ping  $STAMP  FAILED (app may have been waking up)"
+          fi
