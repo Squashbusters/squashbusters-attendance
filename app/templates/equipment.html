@@ -52,6 +52,12 @@
   .legend span{display:inline-flex;align-items:center;gap:6px;}
   .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
   .dot.o{background:var(--accent);} .dot.a{background:var(--teal);}
+  .flash{background:#e3f6ee;border:1px solid #9fe1cb;color:#0f6e56;border-radius:11px;padding:12px 15px;margin-bottom:16px;font-weight:500;}
+  .addrow{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .addrow input{padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);}
+  .addrow .f-type{flex:2;min-width:150px;} .addrow .f-size{flex:1;min-width:110px;} .addrow .f-qty{width:90px;}
+  .addactions{display:flex;gap:10px;margin-top:6px;}
+  .delbtn{background:none;border:none;color:#a32d2d;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;padding:6px 4px;}
 </style>
 </head>
 <body>
@@ -67,6 +73,7 @@
 </nav>
 
 <main>
+  {% if flash %}<div class="flash">{{ flash }}</div>{% endif %}
   <div class="panel">
     <h2>Overview</h2>
     <p class="hint">Live equipment status. Updates as students loan and return at the Closet.</p>
@@ -88,6 +95,28 @@
       </div>
       {% endfor %}
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>Add inventory</h2>
+    <p class="hint">Add equipment to the closet. Codes are generated automatically for each type (e.g. a new Chromebook becomes C-001, C-002…). Add several lines at once — set a size per line when it matters (e.g. shoes), leave it blank otherwise.</p>
+    <form method="post" action="/dashboard/equipment/add" id="addForm">
+      <div id="addRows">
+        <div class="addrow">
+          <input class="f-type" list="typelist" name="itype" placeholder="Type (e.g. Chromebook)" autocomplete="off">
+          <input class="f-size" name="isize" placeholder="Size (optional)">
+          <input class="f-qty" type="number" min="1" name="iqty" placeholder="Qty">
+        </div>
+      </div>
+      <datalist id="typelist">
+        {% for t in types %}<option value="{{ t }}">{% endfor %}
+        <option value="Chromebook">
+      </datalist>
+      <div class="addactions">
+        <button type="button" class="rbtn ghost" id="addRowBtn">+ Add another line</button>
+        <button type="submit" class="rbtn">Add items</button>
+      </div>
+    </form>
   </div>
 
   <div class="panel">
@@ -118,12 +147,18 @@
             </td>
             {% else %}
             <td colspan="2">
-              <form method="post" action="/dashboard/equipment/{{ it.id }}/condition" class="rowform">
-                <select name="condition" onchange="this.form.submit()">
-                  {% for c in conditions %}<option value="{{ c }}" {% if c == it.condition %}selected{% endif %}>{{ c }}</option>{% endfor %}
-                </select>
-                <button class="rbtn ghost" type="submit">Save</button>
-              </form>
+              <div class="rowform">
+                <form method="post" action="/dashboard/equipment/{{ it.id }}/condition" class="rowform">
+                  <select name="condition" onchange="this.form.submit()">
+                    {% for c in conditions %}<option value="{{ c }}" {% if c == it.condition %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                  </select>
+                  <button class="rbtn ghost" type="submit">Save</button>
+                </form>
+                <form method="post" action="/dashboard/equipment/{{ it.id }}/delete"
+                      onsubmit="return confirm('Delete {{ it.code }} from inventory? This cannot be undone.');" class="rowform">
+                  <button class="delbtn" type="submit">Delete</button>
+                </form>
+              </div>
             </td>
             {% endif %}
           </tr>
@@ -133,5 +168,18 @@
     </div>
   </div>
 </main>
+<script>
+  // "+ Add another line": clone a blank inventory row.
+  const addRowBtn = document.getElementById('addRowBtn');
+  const addRows = document.getElementById('addRows');
+  if (addRowBtn) {
+    addRowBtn.addEventListener('click', () => {
+      const row = addRows.firstElementChild.cloneNode(true);
+      row.querySelectorAll('input').forEach(i => { i.value = ''; });
+      addRows.appendChild(row);
+      row.querySelector('.f-type').focus();
+    });
+  }
+</script>
 </body>
 </html>

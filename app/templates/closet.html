@@ -59,18 +59,29 @@
         <label>1. What are you taking?</label>
         <div class="types" id="types">
           {% for t in by_type.keys() %}
-          <button type="button" class="typebtn" data-type="{{ t }}">{{ t }}</button>
+          <button type="button" class="typebtn" data-group="{{ loop.index0 }}">{{ t }}</button>
           {% endfor %}
         </div>
-        <div id="itemWrap" class="hidden">
-          <label>2. Which one?</label>
-          <select name="code" id="itemSelect"></select>
+        <div id="groups">
+          {% for t, items in by_type.items() %}
+          <div class="itemgroup hidden" data-group="{{ loop.index0 }}">
+            <label>2. Pick your {{ t }}(s) — you can choose more than one</label>
+            <div class="items-list">
+              {% for i in items %}
+              <label class="itemcheck">
+                <input type="checkbox" name="code" value="{{ i.code }}" class="loanchk">
+                <span>{{ i.code }}{% if i.size %} · {{ i.size }}{% endif %}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
         </div>
         <div id="pinWrap" class="hidden">
           <label>3. Your PIN</label>
           <input name="pin" inputmode="numeric" pattern="[0-9]*" placeholder="4-digit PIN" autocomplete="off">
         </div>
-        <button class="go" type="submit" id="submitBtn" disabled>Borrow item</button>
+        <button class="go" type="submit" id="submitBtn" disabled>Borrow items</button>
       </form>
       {% else %}
       <p class="none">No equipment is available to borrow right now.</p>
@@ -122,23 +133,32 @@
   });
 
   const typesBox = document.getElementById('types');
-  const itemWrap = document.getElementById('itemWrap');
+  const groupsBox = document.getElementById('groups');
   const pinWrap = document.getElementById('pinWrap');
-  const itemSelect = document.getElementById('itemSelect');
   const submitBtn = document.getElementById('submitBtn');
   if (typesBox) {
+    // Tapping a type reveals that type's items; checkbox selections in the
+    // other (now-hidden) groups are kept, so a student can grab several things
+    // across types in one trip.
     typesBox.querySelectorAll('.typebtn').forEach(btn => {
       btn.addEventListener('click', () => {
         typesBox.querySelectorAll('.typebtn').forEach(b => b.classList.remove('sel'));
         btn.classList.add('sel');
-        const items = BY_TYPE[btn.dataset.type] || [];
-        itemSelect.innerHTML = items.map(i =>
-          `<option value="${i.code}">${i.code}${i.size ? ' · ' + i.size : ''}</option>`).join('');
-        itemWrap.classList.remove('hidden');
-        pinWrap.classList.remove('hidden');
-        submitBtn.disabled = false;
+        groupsBox.querySelectorAll('.itemgroup').forEach(g => {
+          g.classList.toggle('hidden', g.dataset.group !== btn.dataset.group);
+        });
       });
     });
+
+    const refresh = () => {
+      const n = groupsBox.querySelectorAll('.loanchk:checked').length;
+      pinWrap.classList.toggle('hidden', n === 0);
+      submitBtn.disabled = n === 0;
+      submitBtn.textContent = n > 1 ? `Borrow ${n} items` : 'Borrow item';
+    };
+    groupsBox.querySelectorAll('.loanchk').forEach(c =>
+      c.addEventListener('change', refresh));
+    refresh();
   }
 </script>
 </body>

@@ -109,15 +109,23 @@ def closet_action(
             f"/closet?msg={joined}+returned.+Thanks,+{student.full_name}!", status_code=303
         )
 
-    # mode == "loan" (one item at a time)
-    item = db.query(Item).filter(Item.code.ilike(codes[0])).first() if codes else None
-    if not item:
-        return _render(request, db, err="Pick an item first.")
-    if item.status != "Available":
-        return RedirectResponse(f"/closet?err={item.code}+is+not+available.", status_code=303)
-    db.add(Loan(item_id=item.id, student_id=student.id, status="Out"))
-    item.status = "Checked Out"
+    # mode == "loan" (one or more items in a single trip)
+    if not codes:
+        return _render(request, db, err="Pick at least one item first.")
+    loaned: list[str] = []
+    for c in codes:
+        item = db.query(Item).filter(Item.code.ilike(c)).first()
+        if item is None or item.status != "Available":
+            continue
+        db.add(Loan(item_id=item.id, student_id=student.id, status="Out"))
+        item.status = "Checked Out"
+        loaned.append(item.code)
     db.commit()
+    if not loaned:
+        return RedirectResponse(
+            "/closet?err=Sorry,+none+of+those+are+available+anymore.", status_code=303
+        )
+    joined = ", ".join(loaned).replace(" ", "+")
     return RedirectResponse(
-        f"/closet?msg={item.code}+loaned+to+{student.full_name}.", status_code=303
+        f"/closet?msg={joined}+loaned+to+{student.full_name}.", status_code=303
     )

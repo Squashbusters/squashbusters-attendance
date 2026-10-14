@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from datetime import date, datetime
 from urllib.parse import quote
 
@@ -175,7 +176,8 @@ def roster_csv(db: Session = Depends(get_db)):
 
 
 @router.get("/dashboard/equipment", response_class=HTMLResponse)
-def equipment_panel(request: Request, db: Session = Depends(get_db)):
+def equipment_panel(request: Request, msg: str | None = None,
+                    db: Session = Depends(get_db)):
     """Staff view of the closet: every item and who is holding it right now."""
     items = db.query(Item).order_by(Item.type, Item.code).all()
     open_loans = {
@@ -205,8 +207,83 @@ def equipment_panel(request: Request, db: Session = Depends(get_db)):
         {"request": request, "app_name": settings.app_name, "items": rows,
          "total": total, "out": out, "available": total - out,
          "conditions": ["Good", "Fair", "Needs Repair", "Retired"],
+         "types": sorted(by_type.keys()),
+         "flash": msg,
          "by_type": sorted(by_type.values(), key=lambda b: b["type"])},
     )
+
+
+def _next_codes(db: Session, prefix: str, n: int) -> list[str]:
+    """Generate the next `n` unused item codes for a prefix (e.g. C-001, C-002),
+    continuing after the highest existing number for that prefix."""
+    highest = 0
+    pat = re.compile(rf"^{re.escape(prefix)}-(\d+)$")
+    for (code,) in db.query(Item.code).filter(Item.code.like(f"{prefix}-%")).all():
+        m = pat.match(code or "")
+        if m:
+            highest = max(highest, int(m.group(1)))
+    return [f"{prefix}-{highest + i:03d}" for i in range(1, n + 1)]
+
+
+@router.post("/dashboard/equipment/add")
+def equipment_add(
+    itype: list[str] = Form(default=[]),
+    isize: list[str] = Form(default=[]),
+    iqty: list[str] = Form(default=[]),
+    db: Session = Depends(get_db),
+):
+    """Add inventory from the dashboard — several lines at once. Each line is a
+    type + optional size + quantity; codes (e.g. C-001) are auto-generated and
+    continue after whatever already exists for that type's prefix."""
+    created = 0
+    # Pad the parallel lists so a row missing a trailing field still lines up.
+    n_rows = max(len(itype), len(isize), len(iqty))
+    def at(lst, i):
+        return lst[i] if i < len(lst) else ""
+    for i in range(n_rows):
+        t = (at(itype, i) or "").strip()
+        if not t:
+            continue
+        size = (at(isize, i) or "").strip() or None
+        try:
+            qty = int(at(iqty, i) or 0)
+        except ValueError:
+            qty = 0
+        qty = max(0, min(qty, 300))  # sane cap
+        if qty < 1:
+            continue
+        prefix = next((ch for ch in t.upper() if ch.isalnum()), "X")
+        for code in _next_codes(db, prefix, qty):
+            db.add(Item(code=code, type=t, size=size,
+                        status="Available", condition="Good"))
+            created += 1
+    db.commit()
+    note = f"Added {created} item{'s' if created != 1 else ''}." if created else "Nothing to add."
+    return RedirectResponse(f"/dashboard/equipment?msg={quote(note)}", status_code=303)
+
+
+@router.post("/dashboard/equipment/{item_id}/delete")
+def equipment_delete(item_id: int, db: Session = Depends(get_db)):
+    """Remove an item from inventory. Blocked while it is checked out (return it
+    first); returned-loan history for the item is removed with it."""
+    item = db.get(Item, item_id)
+    if item is not None:
+        open_loan = db.query(Loan).filter(
+            Loan.item_id == item_id, Loan.status == "Out"
+        ).first()
+        if open_loan is not None:
+            return RedirectResponse(
+                f"/dashboard/equipment?msg={quote(item.code + ' is checked out — return it before deleting.')}",
+                status_code=303,
+            )
+        code = item.code
+        db.delete(item)
+        db.commit()
+        return RedirectResponse(
+            f"/dashboard/equipment?msg={quote('Deleted ' + code + '.')}",
+            status_code=303,
+        )
+    return RedirectResponse("/dashboard/equipment", status_code=303)
 
 
 @router.post("/dashboard/equipment/{item_id}/return")
