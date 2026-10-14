@@ -34,8 +34,8 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      - key: PUBLIC_KIOSK          # 0 = whole app behind staff login (production)
-        value: "0"
+      - key: PUBLIC_KIOSK          # 1 = kiosk/closet open (dashboard still behind login)
+        value: "1"
       - key: SEED_ON_STARTUP       # ensures the admin user exists
         value: "1"
       - key: SEED_SAMPLE_ROSTER    # 0 = do NOT load the 10 fake students
