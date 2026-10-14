@@ -102,7 +102,6 @@
   </div>
 
   <div class="cards">
-    <div class="card present"><div class="num" id="present">{{ summary.present }}</div><div class="label">Present today</div></div>
     <div class="card in"><div class="num" id="stillin">{{ summary.still_in }}</div><div class="label">Checked-In</div></div>
     <div class="card"><div class="num" id="out">{{ summary.checked_out }}</div><div class="label">Checked-Out</div></div>
     <div class="card rate"><div class="num" id="rate">{{ summary.attendance_rate }}%</div><div class="label"><span id="ratectx">of {{ summary.total_active }} active</span></div></div>
@@ -135,7 +134,7 @@ const dayInput=document.getElementById("day");
 const GRID="#e0e5e9", TICK="#5b6b78", TEAL="#00b1ae", BLUE="#0075bf";
 
 function renderSummary(s){
-  present.textContent=s.present; stillin.textContent=s.still_in; out.textContent=s.checked_out;
+  stillin.textContent=s.still_in; out.textContent=s.checked_out;
   document.getElementById("rate").textContent=s.attendance_rate+"%";
   document.getElementById("ratectx").textContent="of "+s.total_active+" active";
   noemail.textContent=s.missing_email;
