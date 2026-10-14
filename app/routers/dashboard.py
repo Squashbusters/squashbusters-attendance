@@ -213,16 +213,16 @@ def equipment_panel(request: Request, msg: str | None = None,
     )
 
 
-def _next_codes(db: Session, prefix: str, n: int) -> list[str]:
-    """Generate the next `n` unused item codes for a prefix (e.g. C-001, C-002),
-    continuing after the highest existing number for that prefix."""
+def _highest_code_num(db: Session, prefix: str) -> int:
+    """Highest existing number for a code prefix (e.g. 5 for an existing R-005),
+    or 0 if none exist yet."""
     highest = 0
     pat = re.compile(rf"^{re.escape(prefix)}-(\d+)$")
     for (code,) in db.query(Item.code).filter(Item.code.like(f"{prefix}-%")).all():
         m = pat.match(code or "")
         if m:
             highest = max(highest, int(m.group(1)))
-    return [f"{prefix}-{highest + i:03d}" for i in range(1, n + 1)]
+    return highest
 
 
 @router.post("/dashboard/equipment/add")
@@ -234,8 +234,13 @@ def equipment_add(
 ):
     """Add inventory from the dashboard — several lines at once. Each line is a
     type + optional size + quantity; codes (e.g. C-001) are auto-generated and
-    continue after whatever already exists for that type's prefix."""
+    continue after whatever already exists for that type's prefix.
+
+    A running per-prefix counter is kept across lines so that two lines sharing a
+    prefix (e.g. two Shoes lines, S-) keep getting fresh codes instead of both
+    starting from the same database number and colliding."""
     created = 0
+    counters: dict[str, int] = {}
     # Pad the parallel lists so a row missing a trailing field still lines up.
     n_rows = max(len(itype), len(isize), len(iqty))
     def at(lst, i):
@@ -253,8 +258,11 @@ def equipment_add(
         if qty < 1:
             continue
         prefix = next((ch for ch in t.upper() if ch.isalnum()), "X")
-        for code in _next_codes(db, prefix, qty):
-            db.add(Item(code=code, type=t, size=size,
+        if prefix not in counters:
+            counters[prefix] = _highest_code_num(db, prefix)
+        for _ in range(qty):
+            counters[prefix] += 1
+            db.add(Item(code=f"{prefix}-{counters[prefix]:03d}", type=t, size=size,
                         status="Available", condition="Good"))
             created += 1
     db.commit()
