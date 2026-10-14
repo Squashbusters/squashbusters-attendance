@@ -70,6 +70,15 @@
             {% if student.grade and student.grade not in grades %}<option value="{{ student.grade }}" selected>{{ student.grade }}</option>{% endif %}
           </select>
         </div>
+        {% set st = (student.current_program_status or '')|replace(' - E-HS Program','')|trim %}
+        <div class="field"><label>Status</label>
+          <select name="status">
+            <option value="" {% if not st %}selected{% endif %}>— none (inactive) —</option>
+            <option value="Active" {% if st=='Active' %}selected{% endif %}>Active</option>
+            <option value="Trying Out" {% if st=='Trying Out' %}selected{% endif %}>Trying Out</option>
+            <option value="Inactive" {% if st=='Inactive' %}selected{% endif %}>Inactive</option>
+          </select>
+        </div>
         <div class="field"><label>Student email</label><input name="student_email" type="email" value="{{ student.email or '' }}" /></div>
         <div class="field"><label>Student phone</label><input name="student_phone" value="{{ student.phone or '' }}" /></div>
       </div>

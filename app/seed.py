@@ -47,9 +47,24 @@ def ensure_admin(db) -> None:
         print("Updated admin password from ADMIN_PASSWORD.")
 
 
+def seed_items_if_empty(db) -> None:
+    """Create the starting equipment (5 rackets, 5 shoes, 5 eye guards) once, if
+    the items table is empty. Idempotent — safe to run on every startup."""
+    from app.models import Item
+
+    if db.query(Item).count() > 0:
+        return
+    for prefix, type_ in [("R", "Racket"), ("S", "Shoes"), ("E", "Eye Guard")]:
+        for i in range(1, 6):
+            db.add(Item(code=f"{prefix}-{i:03d}", type=type_,
+                        status="Available", condition="Good"))
+    db.commit()
+    print("Seeded 15 starting equipment items.")
+
+
 def seed_if_empty() -> None:
-    """Idempotent seed for the hosted demo: ensure an admin exists and, if there
-    are no students yet, import the sample roster."""
+    """Idempotent seed for the hosted demo: ensure an admin exists, seed the
+    starting equipment, and (demo only) import the sample roster if no students."""
     from app.models import Student
 
     from app.config import settings
@@ -58,6 +73,7 @@ def seed_if_empty() -> None:
     db = SessionLocal()
     try:
         ensure_admin(db)
+        seed_items_if_empty(db)
         if settings.seed_sample_roster and db.query(Student).count() == 0:
             import_roster_csv(db, DEFAULT_CSV.read_bytes())
             print("Seeded sample roster on startup.")

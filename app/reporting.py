@@ -163,6 +163,7 @@ def get_roster(db: Session, site_id: int | None = None) -> list[dict]:
             "grade": s.grade or "",
             "pin": s.pin or "",
             "current_program_status": s.current_program_status or "",
+            "status": (s.current_program_status or "").replace(" - E-HS Program", "").strip(),
             "contact_record_type": s.contact_record_type or "",
             "program_engagement_name": s.program_engagement_name or "",
             "contact_id": s.contact_id or "",

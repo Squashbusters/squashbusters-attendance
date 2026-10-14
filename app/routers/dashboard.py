@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
@@ -34,6 +34,7 @@ from app.reporting import (
     get_roster,
 )
 from app.services import process_scan
+from app.models import Item, Loan
 
 router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_login)])
 templates = Jinja2Templates(
@@ -133,6 +134,76 @@ def pins_panel(request: Request, db: Session = Depends(get_db)):
             "students": students,
         },
     )
+
+
+@router.get("/dashboard/equipment", response_class=HTMLResponse)
+def equipment_panel(request: Request, db: Session = Depends(get_db)):
+    """Staff view of the closet: every item and who is holding it right now."""
+    items = db.query(Item).order_by(Item.type, Item.code).all()
+    open_loans = {
+        l.item_id: l for l in db.query(Loan).filter(Loan.status == "Out").all()
+    }
+    rows = []
+    by_type: dict[str, dict] = {}
+    for it in items:
+        ol = open_loans.get(it.id)
+        is_out = ol is not None
+        rows.append({
+            "id": it.id, "code": it.code, "type": it.type, "size": it.size,
+            "status": it.status, "condition": it.condition,
+            "holder": ol.student.full_name if ol else None,
+            "since": ol.checked_out.strftime("%b %-d") if ol and ol.checked_out else None,
+        })
+        bt = by_type.setdefault(it.type, {"type": it.type, "total": 0, "out": 0})
+        bt["total"] += 1
+        if is_out:
+            bt["out"] += 1
+    for bt in by_type.values():
+        bt["available"] = bt["total"] - bt["out"]
+    out = sum(1 for r in rows if r["holder"])
+    total = len(rows)
+    return templates.TemplateResponse(
+        "equipment.html",
+        {"request": request, "app_name": settings.app_name, "items": rows,
+         "total": total, "out": out, "available": total - out,
+         "conditions": ["Good", "Fair", "Needs Repair", "Retired"],
+         "by_type": sorted(by_type.values(), key=lambda b: b["type"])},
+    )
+
+
+@router.post("/dashboard/equipment/{item_id}/return")
+def equipment_return(item_id: int, condition: str = Form("Good"),
+                     db: Session = Depends(get_db)):
+    """Staff-side return: mark the open loan returned and set the item's condition.
+    A 'Needs Repair' item goes to In Repair instead of Available."""
+    item = db.get(Item, item_id)
+    if item is not None:
+        loan = db.query(Loan).filter(
+            Loan.item_id == item_id, Loan.status == "Out"
+        ).first()
+        if loan is not None:
+            loan.returned = datetime.utcnow()
+            loan.status = "Returned"
+        if condition:
+            item.condition = condition
+        item.status = "In Repair" if condition == "Needs Repair" else "Available"
+        db.commit()
+    return RedirectResponse("/dashboard/equipment", status_code=303)
+
+
+@router.post("/dashboard/equipment/{item_id}/condition")
+def equipment_condition(item_id: int, condition: str = Form(...),
+                        db: Session = Depends(get_db)):
+    """Staff-side: update an item's condition without returning it."""
+    item = db.get(Item, item_id)
+    if item is not None and condition:
+        item.condition = condition
+        if item.status == "In Repair" and condition != "Needs Repair":
+            item.status = "Available"
+        elif condition == "Needs Repair" and item.status == "Available":
+            item.status = "In Repair"
+        db.commit()
+    return RedirectResponse("/dashboard/equipment", status_code=303)
 
 
 @router.get("/report/missing", response_class=HTMLResponse)

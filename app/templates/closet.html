@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ app_name }} — Closet</title>
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Karla:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#f4f7f9;--panel:#fff;--panel-2:#eef3f6;--text:#00213b;--muted:#5b6b78;
+    --accent:#0075bf;--teal:#00b1ae;--navy:#00335c;--border:#e0e5e9;
+    --head:"Fjalla One",sans-serif;--body:"Karla",sans-serif;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;}
+  header{background:var(--panel);border-bottom:3px solid var(--teal);padding:18px 28px;}
+  header h1{font-family:var(--head);font-weight:400;text-transform:uppercase;color:var(--navy);font-size:22px;margin:0;}
+  main{max-width:480px;margin:34px auto;padding:0 20px;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:26px 24px;box-shadow:0 1px 3px rgba(0,33,59,.06);}
+  h2{font-family:var(--head);font-weight:400;color:var(--navy);margin:0 0 6px;font-size:20px;}
+  p.sub{color:var(--muted);margin:0 0 18px;font-size:14px;}
+  label{display:block;font-weight:700;font-size:14px;margin:18px 0 8px;}
+  .types{display:flex;gap:10px;}
+  .typebtn{flex:1;background:var(--panel-2);border:2px solid var(--border);border-radius:12px;padding:16px 8px;font-size:15px;font-weight:700;font-family:inherit;color:var(--navy);cursor:pointer;}
+  .typebtn.sel{background:#e3f6ee;border-color:var(--teal);color:#0f6e56;}
+  select,input{width:100%;padding:14px;border:1px solid var(--border);border-radius:11px;font-size:17px;font-family:inherit;background:#fff;color:var(--text);}
+  button.go{margin-top:24px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:16px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;}
+  button.go:disabled{background:#b4c3cf;cursor:not-allowed;}
+  .msg{background:#e3f6ee;border:1px solid #9fe1cb;color:#0f6e56;border-radius:11px;padding:13px 15px;margin-bottom:16px;font-weight:500;}
+  .err{background:#fdecec;border:1px solid #f3c1c1;color:#a32d2d;border-radius:11px;padding:13px 15px;margin-bottom:16px;font-weight:500;}
+  .hidden{display:none;}
+  .none{color:var(--muted);font-size:14px;}
+  .toggle{display:flex;gap:8px;margin:0 0 20px;}
+  .tgl{flex:1;background:var(--panel-2);border:2px solid var(--border);border-radius:11px;padding:12px;font-size:15px;font-weight:700;font-family:inherit;color:var(--navy);cursor:pointer;}
+  .tgl.sel{background:#e3f6ee;border-color:var(--teal);color:#0f6e56;}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .back{color:var(--accent);text-decoration:none;font-weight:700;font-size:15px;}
+  .items-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .itemcheck{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;padding:15px 18px;font-size:16px;font-weight:500;color:var(--text);cursor:pointer;}
+  .itemcheck input{width:22px;height:22px;accent-color:var(--teal);}
+  .linkish{display:inline-block;margin-top:16px;color:var(--muted);text-decoration:none;font-size:14px;}
+</style>
+</head>
+<body>
+<header><h1>{{ app_name }} — Closet</h1><a class="back" href="/kiosk">← Back to kiosk</a></header>
+<main>
+  <div class="panel">
+    <h2>Equipment</h2>
+    {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+    {% if err %}<div class="err">{{ err }}</div>{% endif %}
+
+    <div class="toggle">
+      <button type="button" class="tgl {% if not show_return %}sel{% endif %}" id="tglLoan">Borrow</button>
+      <button type="button" class="tgl {% if show_return %}sel{% endif %}" id="tglReturn">Return</button>
+    </div>
+
+    <div id="loanView" class="{% if show_return %}hidden{% endif %}">
+      {% if by_type %}
+      <form method="post" action="/closet">
+        <input type="hidden" name="mode" value="loan">
+        <label>1. What are you taking?</label>
+        <div class="types" id="types">
+          {% for t in by_type.keys() %}
+          <button type="button" class="typebtn" data-type="{{ t }}">{{ t }}</button>
+          {% endfor %}
+        </div>
+        <div id="itemWrap" class="hidden">
+          <label>2. Which one?</label>
+          <select name="code" id="itemSelect"></select>
+        </div>
+        <div id="pinWrap" class="hidden">
+          <label>3. Your PIN</label>
+          <input name="pin" inputmode="numeric" pattern="[0-9]*" placeholder="4-digit PIN" autocomplete="off">
+        </div>
+        <button class="go" type="submit" id="submitBtn" disabled>Borrow item</button>
+      </form>
+      {% else %}
+      <p class="none">No equipment is available to borrow right now.</p>
+      {% endif %}
+    </div>
+
+    <div id="returnView" class="{% if not show_return %}hidden{% endif %}">
+      {% if my_items %}
+      <form method="post" action="/closet">
+        <input type="hidden" name="mode" value="return">
+        <input type="hidden" name="pin" value="{{ return_pin }}">
+        <label>Select what you're returning</label>
+        <div class="items-list">
+          {% for i in my_items %}
+          <label class="itemcheck">
+            <input type="checkbox" name="code" value="{{ i.code }}">
+            <span>{{ i.code }} · {{ i.type }}{% if i.size %} · {{ i.size }}{% endif %}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <button class="go" type="submit">Return selected</button>
+      </form>
+      <a class="linkish" href="/closet">Start over</a>
+      {% else %}
+      <form method="post" action="/closet">
+        <input type="hidden" name="mode" value="return_lookup">
+        <label>Enter your PIN to see what you have out</label>
+        <input name="pin" inputmode="numeric" pattern="[0-9]*" placeholder="4-digit PIN" autocomplete="off">
+        <button class="go" type="submit">Find my items</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<script>
+  const BY_TYPE = {{ by_type|tojson }};
+  const loanView = document.getElementById('loanView');
+  const returnView = document.getElementById('returnView');
+  const tglLoan = document.getElementById('tglLoan');
+  const tglReturn = document.getElementById('tglReturn');
+  tglLoan.addEventListener('click', () => {
+    tglLoan.classList.add('sel'); tglReturn.classList.remove('sel');
+    loanView.classList.remove('hidden'); returnView.classList.add('hidden');
+  });
+  tglReturn.addEventListener('click', () => {
+    tglReturn.classList.add('sel'); tglLoan.classList.remove('sel');
+    returnView.classList.remove('hidden'); loanView.classList.add('hidden');
+  });
+
+  const typesBox = document.getElementById('types');
+  const itemWrap = document.getElementById('itemWrap');
+  const pinWrap = document.getElementById('pinWrap');
+  const itemSelect = document.getElementById('itemSelect');
+  const submitBtn = document.getElementById('submitBtn');
+  if (typesBox) {
+    typesBox.querySelectorAll('.typebtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        typesBox.querySelectorAll('.typebtn').forEach(b => b.classList.remove('sel'));
+        btn.classList.add('sel');
+        const items = BY_TYPE[btn.dataset.type] || [];
+        itemSelect.innerHTML = items.map(i =>
+          `<option value="${i.code}">${i.code}${i.size ? ' · ' + i.size : ''}</option>`).join('');
+        itemWrap.classList.remove('hidden');
+        pinWrap.classList.remove('hidden');
+        submitBtn.disabled = false;
+      });
+    });
+  }
+</script>
+</body>
+</html>

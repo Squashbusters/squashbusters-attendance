@@ -109,6 +109,8 @@
   .result.warn .icon { color: var(--amber); }
   .result.err .icon { color: var(--red); }
   .hint { color: var(--muted); margin-top: 22px; font-size: 16px; }
+  .borrow-btn { margin-top: 26px; background: var(--accent); color: #fff; text-decoration: none;
+    font-weight: 700; font-size: 22px; padding: 16px 30px; border-radius: 14px; }
 </style>
 </head>
 <body>
@@ -143,6 +145,7 @@
     <div class="prompt">Enter your 4-digit PIN</div>
     <div class="dots" id="dots"></div>
     <div class="keypad" id="keypad"></div>
+    <a class="register-link" href="/closet">Borrow or return equipment →</a>
     <div class="back-link"><button id="cancel">← Not you? Go back</button></div>
     <canvas id="canvas"></canvas>
   </section>
@@ -151,6 +154,7 @@
     <div class="result" id="result">
       <div class="icon" id="resultIcon"></div>
       <div class="msg" id="resultMsg"></div>
+      <a id="borrowBtn" href="/closet" class="borrow-btn" style="display:none">Borrow equipment →</a>
       <div class="hint">Returning to the start…</div>
     </div>
   </section>
@@ -333,9 +337,12 @@ function showResult(data) {
   el("result").className = "result " + cls;
   el("resultIcon").textContent = icon;
   el("resultMsg").textContent = data.message;
+  // After a check-in (not a check-out), offer to borrow equipment next.
+  const isCheckIn = data.ok && /checked in/i.test(data.message || "");
+  el("borrowBtn").style.display = isCheckIn ? "inline-block" : "none";
   show("result");
   clearTimeout(resetTimer);
-  resetTimer = setTimeout(reset, 8000);
+  resetTimer = setTimeout(reset, isCheckIn ? 15000 : 8000);
 }
 
 function reset() {

@@ -55,6 +55,7 @@
   <a class="tab" href="/dashboard">Report</a>
   <a class="tab active" href="/dashboard/roster">Records</a>
   <a class="tab" href="/dashboard/pins">PINs</a>
+  <a class="tab" href="/dashboard/equipment">Equipment</a>
 </nav>
 <main>
   <div class="panel">
@@ -80,7 +81,7 @@
         <thead>
           <tr>
             <th class="name">Student</th><th>Edit</th><th>Grade</th>
-            <th>Program status</th><th>Record type</th><th>Program</th><th>Program engagement</th><th>Site</th>
+            <th>Status</th><th>Site</th>
             <th>Student email</th><th>Student phone</th>
             <th>Mother</th><th>Mother email</th><th>Mother phone</th>
             <th>Father</th><th>Father email</th><th>Father phone</th>
@@ -93,10 +94,7 @@
             <td class="name">{{ s.name }}</td>
             <td><a class="edit" href="/manage/student/{{ s.id }}">Edit</a></td>
             <td>{{ s.grade or "—" }}</td>
-            <td>{{ s.current_program_status or "—" }}</td>
-            <td>{{ s.contact_record_type or "—" }}</td>
-            <td>{{ s.program or "—" }}</td>
-            <td>{{ s.program_engagement_name or "—" }}</td>
+            <td>{{ s.status or "—" }}</td>
             <td>{{ s.site or "—" }}</td>
             <td>{{ s.student_email or "—" }}</td>
             <td>{{ s.student_phone or "—" }}</td>

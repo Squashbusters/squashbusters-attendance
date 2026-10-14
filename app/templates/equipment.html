@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ app_name }} — Equipment</title>
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Karla:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#f4f7f9;--panel:#fff;--panel-2:#eef3f6;--text:#00213b;--muted:#5b6b78;
+    --accent:#0075bf;--teal:#00b1ae;--navy:#00335c;--border:#e0e5e9;
+    --head:"Fjalla One",sans-serif;--body:"Karla",sans-serif;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  header{background:var(--panel);border-bottom:3px solid var(--teal);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  header h1{font-family:var(--head);font-weight:400;text-transform:uppercase;color:var(--navy);font-size:22px;margin:0;}
+  a.btn{background:var(--panel-2);color:var(--navy);border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:700;text-decoration:none;}
+  .tabs{display:flex;gap:6px;max-width:1240px;margin:20px auto -1px;padding:0 26px;}
+  .tab{padding:10px 18px;border-radius:10px 10px 0 0;text-decoration:none;color:var(--muted);font-weight:500;font-size:15px;border:1px solid transparent;border-bottom:none;}
+  .tab.active{background:var(--panel);color:var(--navy);border-color:var(--border);}
+  main{padding:24px 26px;max-width:1240px;margin:0 auto;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,33,59,.05);}
+  .panel h2{font-family:var(--head);font-weight:400;color:var(--navy);font-size:17px;margin:0 0 6px;}
+  .hint{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  .tablewrap{overflow:auto;border:1px solid var(--border);border-radius:12px;max-height:68vh;}
+  table{border-collapse:collapse;font-size:14px;width:100%;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);}
+  th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);font-weight:700;}
+  td.code{font-weight:500;}
+  .pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;}
+  .avail{background:#e3f6ee;color:#0f6e56;}
+  .out{background:#eaf1fb;color:#185fa5;}
+  .repair{background:#faeeda;color:#854f0b;}
+  .rowform{display:flex;gap:8px;align-items:center;margin:0;}
+  .rowform select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--text);}
+  .rbtn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;}
+  .rbtn.ghost{background:var(--panel-2);color:var(--navy);}
+  .panel+.panel{margin-top:18px;}
+  .cards{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;}
+  .card{flex:1;min-width:140px;background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+  .card .num{font-family:var(--head);font-size:34px;line-height:1;color:var(--navy);}
+  .card .lbl{color:var(--muted);font-size:13px;margin-top:6px;}
+  .card.outc{border-bottom:3px solid var(--accent);}
+  .card.availc{border-bottom:3px solid var(--teal);}
+  .bars{display:flex;flex-direction:column;gap:12px;}
+  .barrow{display:grid;grid-template-columns:90px 1fr 64px;align-items:center;gap:12px;}
+  .barrow .t{font-weight:500;font-size:14px;}
+  .track{background:var(--panel-2);border-radius:8px;height:22px;overflow:hidden;display:flex;}
+  .track .seg-out{background:var(--accent);height:100%;}
+  .track .seg-av{background:var(--teal);height:100%;}
+  .barrow .cnt{font-size:13px;color:var(--muted);text-align:right;}
+  .legend{display:flex;gap:18px;margin:4px 0 16px;font-size:13px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .dot.o{background:var(--accent);} .dot.a{background:var(--teal);}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ app_name }} — Equipment</h1>
+  <a class="btn" href="/logout">Log out</a>
+</header>
+<nav class="tabs">
+  <a class="tab" href="/dashboard">Report</a>
+  <a class="tab" href="/dashboard/roster">Records</a>
+  <a class="tab" href="/dashboard/pins">PINs</a>
+  <a class="tab active" href="/dashboard/equipment">Equipment</a>
+</nav>
+
+<main>
+  <div class="panel">
+    <h2>Overview</h2>
+    <p class="hint">Live equipment status. Updates as students loan and return at the Closet.</p>
+    <div class="cards">
+      <div class="card"><div class="num">{{ total }}</div><div class="lbl">Total items</div></div>
+      <div class="card outc"><div class="num">{{ out }}</div><div class="lbl">Checked out</div></div>
+      <div class="card availc"><div class="num">{{ available }}</div><div class="lbl">Available</div></div>
+    </div>
+    <div class="legend"><span><i class="dot o"></i> Out</span><span><i class="dot a"></i> Available</span></div>
+    <div class="bars">
+      {% for b in by_type %}
+      <div class="barrow">
+        <div class="t">{{ b.type }}</div>
+        <div class="track">
+          <div class="seg-out" style="width:{{ (100 * b.out / b.total) if b.total else 0 }}%"></div>
+          <div class="seg-av" style="width:{{ (100 * b.available / b.total) if b.total else 0 }}%"></div>
+        </div>
+        <div class="cnt">{{ b.out }}/{{ b.total }} out</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Equipment</h2>
+    <p class="hint">{{ out }} of {{ total }} items are currently out. Students loan and return with their kiosk PIN at the Closet station.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Code</th><th>Type</th><th>Size</th><th>Status</th><th>Loaned to</th><th>Since</th><th>Condition</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td class="code">{{ it.code }}</td>
+            <td>{{ it.type }}</td>
+            <td>{{ it.size or "—" }}</td>
+            <td>{% if it.holder %}<span class="pill out">Checked out</span>{% elif it.status == "In Repair" %}<span class="pill repair">In repair</span>{% else %}<span class="pill avail">Available</span>{% endif %}</td>
+            <td>{{ it.holder or "—" }}</td>
+            <td>{{ it.since or "—" }}</td>
+            {% if it.holder %}
+            <td colspan="2">
+              <form method="post" action="/dashboard/equipment/{{ it.id }}/return" class="rowform">
+                <select name="condition">
+                  {% for c in conditions %}<option value="{{ c }}" {% if c == it.condition %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+                <button class="rbtn" type="submit">Return</button>
+              </form>
+            </td>
+            {% else %}
+            <td colspan="2">
+              <form method="post" action="/dashboard/equipment/{{ it.id }}/condition" class="rowform">
+                <select name="condition" onchange="this.form.submit()">
+                  {% for c in conditions %}<option value="{{ c }}" {% if c == it.condition %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+                <button class="rbtn ghost" type="submit">Save</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+</body>
+</html>

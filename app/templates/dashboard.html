@@ -79,6 +79,7 @@
   <a class="tab active" href="/dashboard">Report</a>
   <a class="tab" href="/dashboard/roster">Records</a>
   <a class="tab" href="/dashboard/pins">PINs</a>
+  <a class="tab" href="/dashboard/equipment">Equipment</a>
 </nav>
 <main>
   {% if flash %}<div class="flash {{ 'ok' if flash_ok else 'err' }}">{{ flash }}</div>{% endif %}
@@ -102,8 +103,8 @@
 
   <div class="cards">
     <div class="card present"><div class="num" id="present">{{ summary.present }}</div><div class="label">Present today</div></div>
-    <div class="card in"><div class="num" id="stillin">{{ summary.still_in }}</div><div class="label">Currently in the center</div></div>
-    <div class="card"><div class="num" id="out">{{ summary.checked_out }}</div><div class="label">Checked out</div></div>
+    <div class="card in"><div class="num" id="stillin">{{ summary.still_in }}</div><div class="label">Checked-In</div></div>
+    <div class="card"><div class="num" id="out">{{ summary.checked_out }}</div><div class="label">Checked-Out</div></div>
     <div class="card rate"><div class="num" id="rate">{{ summary.attendance_rate }}%</div><div class="label"><span id="ratectx">of {{ summary.total_active }} active</span></div></div>
     <a class="card amber" href="/report/missing" style="text-decoration:none;color:inherit;" title="View the list of students missing a guardian email"><div class="num" id="noemail">{{ summary.missing_email }}</div><div class="label">Missing guardian email &rsaquo;</div></a>
   </div>

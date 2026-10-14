@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import settings
 from app.database import init_db
-from app.routers import admin, api, dashboard, kiosk, manage, outbox, register
+from app.routers import admin, api, closet, dashboard, kiosk, manage, outbox, register
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -42,6 +42,7 @@ def _redirect_to_login(request: Request, exc: auth.NotAuthenticated):
 
 
 app.include_router(kiosk.router)
+app.include_router(closet.router)
 app.include_router(register.router)
 app.include_router(api.router)
 app.include_router(auth.router)

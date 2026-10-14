@@ -5,7 +5,7 @@ Every operational record carries a site_id so the system is multi-site ready
 """
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -143,3 +143,35 @@ class StaffUser(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     # "staff" = read dashboards/reports; "admin" = manage data + import.
     role: Mapped[str] = mapped_column(String(20), default="staff")
+
+
+# --- Equipment / loans (the "closet" surface) ----------------------------
+# Shares the same Student as attendance, so a student's kiosk PIN also loans
+# equipment. This is the inventory module folded into the check-in app.
+class Item(Base):
+    __tablename__ = "items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(20), unique=True, index=True)   # R-001
+    type: Mapped[str] = mapped_column(String(40), index=True)                # Racket / Shoes / Eye Guard
+    size: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="Available", index=True)
+    condition: Mapped[str] = mapped_column(String(20), default="Good")       # Good / Fair / Needs Repair / Retired
+
+    loans: Mapped[list["Loan"]] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )
+
+
+class Loan(Base):
+    __tablename__ = "loans"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id"), index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"), index=True)
+    checked_out: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    returned: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="Out", index=True)  # Out / Returned
+
+    item: Mapped["Item"] = relationship(back_populates="loans")
+    student: Mapped["Student"] = relationship()

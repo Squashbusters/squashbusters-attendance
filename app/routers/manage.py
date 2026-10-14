@@ -84,6 +84,7 @@ async def update_student(
     student.first_name = first
     student.last_name = last
     student.grade = (form.get("grade") or "").strip() or None
+    student.current_program_status = (form.get("status") or "").strip() or None
     student.email = (form.get("student_email") or "").strip() or None
     student.phone = (form.get("student_phone") or "").strip() or None
 
