@@ -136,6 +136,28 @@ def pins_panel(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/dashboard/roster.csv")
+def roster_csv(db: Session = Depends(get_db)):
+    """Download the full records sheet as CSV (staff-only)."""
+    rows = get_roster(db)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Name", "Grade", "Status", "Site", "PIN", "Student email", "Student phone",
+                "Mother", "Mother email", "Mother phone",
+                "Father", "Father email", "Father phone", "Other guardians"])
+    for r in rows:
+        w.writerow([r["name"], r["grade"], r["status"], r["site"], r["pin"],
+                    r["student_email"], r["student_phone"],
+                    r["mother_name"], r["mother_email"], r["mother_phone"],
+                    r["father_name"], r["father_email"], r["father_phone"],
+                    r["other_guardians"]])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]), media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=sqb_records.csv"},
+    )
+
+
 @router.get("/dashboard/equipment", response_class=HTMLResponse)
 def equipment_panel(request: Request, db: Session = Depends(get_db)):
     """Staff view of the closet: every item and who is holding it right now."""
