@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Daily attendance — {{ day }}</title>
+<title>Daily attendance — {{ day_us }}</title>
 <style>
   :root{--border:#cbd5e1;--muted:#64748b;--accent:#0284c7;--amber:#b45309;--green:#15803d;}
   *{box-sizing:border-box;}
@@ -41,7 +41,7 @@
   <div class="top">
     <div>
       <h1>Daily attendance verification</h1>
-      <p class="sub">{{ app_name }} · {{ day }}</p>
+      <p class="sub">{{ app_name }} · {{ day_us }}</p>
     </div>
     <div class="actions">
       <a class="btn" href="/report/daily.csv?day={{ day }}">Download CSV</a>
@@ -89,7 +89,7 @@
     <div class="line">Staff signature / date</div>
   </div>
   {% else %}
-  <div class="empty">No check-ins recorded for {{ day }}.</div>
+  <div class="empty">No check-ins recorded for {{ day_us }}.</div>
   {% endif %}
 </div>
 </body>

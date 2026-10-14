@@ -190,7 +190,7 @@ def equipment_panel(request: Request, db: Session = Depends(get_db)):
             "id": it.id, "code": it.code, "type": it.type, "size": it.size,
             "status": it.status, "condition": it.condition,
             "holder": ol.student.full_name if ol else None,
-            "since": ol.checked_out.strftime("%b %-d") if ol and ol.checked_out else None,
+            "since": ol.checked_out.strftime("%m-%d-%Y") if ol and ol.checked_out else None,
         })
         bt = by_type.setdefault(it.type, {"type": it.type, "total": 0, "out": 0})
         bt["total"] += 1
@@ -295,6 +295,7 @@ def daily_report(request: Request, day: str | None = None, db: Session = Depends
             "rows": rows,
             "summary": summary,
             "day": the_day.isoformat(),
+            "day_us": the_day.strftime("%m-%d-%Y"),
         },
     )
 
@@ -326,8 +327,8 @@ def daily_report_csv(day: str | None = None, db: Session = Depends(get_db)):
                 r.student_name,
                 r.program or "",
                 r.site,
-                r.check_in.strftime("%Y-%m-%d %H:%M"),
-                r.check_out.strftime("%Y-%m-%d %H:%M") if r.check_out else "",
+                r.check_in.strftime("%m-%d-%Y %H:%M"),
+                r.check_out.strftime("%m-%d-%Y %H:%M") if r.check_out else "",
                 r.duration_minutes if r.duration_minutes is not None else "",
                 r.status,
                 r.guardian_email or "(none on file)",

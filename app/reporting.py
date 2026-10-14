@@ -178,7 +178,7 @@ def get_roster(db: Session, site_id: int | None = None) -> list[dict]:
             "father_email": (dad.email if dad else "") or "",
             "father_phone": (dad.phone if dad else "") or "",
             "other_guardians": other_txt,
-            "added": s.created_at.strftime("%Y-%m-%d") if s.created_at else "",
+            "added": s.created_at.strftime("%m-%d-%Y") if s.created_at else "",
         })
     return rows
 
@@ -201,7 +201,7 @@ def get_recently_added(db: Session, limit: int = 10) -> list[dict]:
         {
             "name": s.full_name,
             "grade": s.grade or "—",
-            "added": s.created_at.strftime("%b %-d, %-I:%M %p") if s.created_at else "",
+            "added": s.created_at.strftime("%m-%d-%Y, %-I:%M %p") if s.created_at else "",
         }
         for s in db.execute(stmt).scalars().all()
     ]
