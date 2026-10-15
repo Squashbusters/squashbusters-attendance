@@ -121,7 +121,13 @@
   </div>
 
   <div class="panel">
-    <h2>Currently checked in <span class="pill" id="inCount">0</span></h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Currently checked in <span class="pill" id="inCount">0</span></h2>
+      <form method="post" action="/dashboard/checkout-all" style="margin:0;"
+            onsubmit="return confirm('Check out everyone who is still checked in right now? This closes all open check-ins.');">
+        <button class="btn secondary" type="submit">Check out everyone</button>
+      </form>
+    </div>
     <ul class="inlist" id="inList"></ul>
     <p class="muted" id="emptyIn" style="display:none;">Nobody is checked in right now.</p>
   </div>

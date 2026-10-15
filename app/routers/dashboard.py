@@ -35,6 +35,7 @@ from app.reporting import (
     get_roster,
 )
 from app.services import process_scan
+from app.auto_checkout import run_auto_checkout
 from app.models import Item, Loan
 
 router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_login)])
@@ -106,6 +107,19 @@ def dashboard_scan(
         url=f"/dashboard?msg={quote(result.message)}&ok={ok_flag}",
         status_code=303,
     )
+
+
+@router.post("/dashboard/checkout-all")
+def checkout_all(db: Session = Depends(get_db)):
+    """End-of-day sweep: check out everyone still checked in. Staff-only (this
+    router is behind require_login). Silent — no guardian notifications."""
+    closed = run_auto_checkout(db)
+    n = len(closed)
+    note = (
+        f"Checked out {n} student{'s' if n != 1 else ''}."
+        if n else "Nobody was checked in."
+    )
+    return RedirectResponse(f"/dashboard?msg={quote(note)}&ok=1", status_code=303)
 
 
 @router.get("/dashboard/roster", response_class=HTMLResponse)
